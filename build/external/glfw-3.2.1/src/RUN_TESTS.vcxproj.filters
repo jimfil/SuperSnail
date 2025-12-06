@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\build\CMakeFiles\f429605b36950bb326fbe850eb7a8f05\RUN_TESTS_force.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{86E2DEDC-F9BC-357A-9F26-24E7EB826C7E}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
