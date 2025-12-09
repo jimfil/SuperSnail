@@ -5,7 +5,7 @@
 #include "snail.h"
 using namespace glm;
 
-bool handleSnailTerrainCollision(Snail* snail, Heightmap* terrain) {
+bool handleSnailTerrainCollision(Snail* snail, Heightmap* terrain,bool stopMovement) {
     if (!snail || !terrain) return false; // Safety check
 
     // 1. Ask terrain for height
@@ -25,8 +25,6 @@ bool handleSnailTerrainCollision(Snail* snail, Heightmap* terrain) {
         // Snap to top + epsilon
         snail->x.y = groundHeight + radius + 0.001f;
 
-        // Kill velocity (Complete stop when touching ground)
-        // This acts as infinite friction, which is good for a snail
         snail->v.y = 0;
         snail->v.x = 0;
         snail->v.z = 0;
@@ -56,6 +54,19 @@ bool handleSnailTerrainCollision(Snail* snail, Heightmap* terrain) {
 
         glm::quat targetQ = glm::quat_cast(targetRotMat);
         snail->q = glm::normalize(glm::slerp(snail->q, targetQ, 0.2f)); // Increased smoothing speed slightly
+
+        if (stopMovement) {
+            // Kill ALL velocity if no keys are pressed (Snail Sticks)
+            snail->v = vec3(0.0f);
+        }
+        else {
+            // If moving, only kill downward velocity (The more complex tangential fix)
+            vec3 surfaceNormal = terrain->getNormalAt(snail->x.x, snail->x.z);
+            float normalVelocity = dot(snail->v, surfaceNormal);
+            if (normalVelocity < 0) {
+                snail->v -= surfaceNormal * normalVelocity;
+            }
+        }
 
         return true; // <--- WE ARE ON THE GROUND
     }

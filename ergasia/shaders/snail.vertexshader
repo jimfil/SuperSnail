@@ -1,0 +1,56 @@
+#version 330 core
+
+layout(location = 0) in vec3 vertexPosition_modelspace;
+layout(location = 1) in vec3 vertexNormal_modelspace;
+layout(location = 2) in vec2 vertexUV;
+
+struct Light {
+    vec4 La;
+    vec4 Ld;
+    vec4 Ls;
+    vec3 lightPosition_worldspace;
+};
+uniform Light light;
+
+uniform mat4 P;
+uniform mat4 V;
+uniform mat4 M;
+uniform mat4 lightVP;
+uniform float time;
+uniform float snailSpeed;
+uniform float retractFactor; // 0.0 = normal, 1.0 = fully retracted
+
+out vec4 vertex_position_cameraspace;
+out vec4 vertex_normal_cameraspace;
+out vec4 light_position_cameraspace;
+out vec2 vertex_UV;
+out vec4 vertex_position_lightspace;
+
+void main() {
+    vec3 animatedPos = vertexPosition_modelspace;
+
+    // --- CREEPING ANIMATION (Mesh Manipulation) ---
+    // Apply a sine wave based on position and time, scaled by speed
+    float wave = sin(animatedPos.z * 15.0 + time * 10.0) * (snailSpeed * 0.05);
+    
+    // Only animate the bottom "foot" of the snail (assuming low Y coords)
+    if(animatedPos.y < 0.2) { 
+        animatedPos.y += wave;
+    }
+
+    // --- RETRACT ANIMATION ---
+    // Shrink the mesh toward the shell center (assume 0,0,0 in model space)
+    // Masking: Usually you'd check vertex color or weight. 
+    // Here we check if vertex is part of the 'soft' front/bottom (Z > 0)
+    if(animatedPos.z > -0.5) { 
+        animatedPos = mix(animatedPos, vec3(0.0, 0.5, -0.5), retractFactor);
+    }
+
+    // Standard Matrix Transformations
+    gl_Position = P * V * M * vec4(animatedPos, 1.0);
+    vertex_position_cameraspace = V * M * vec4(animatedPos, 1.0);
+    vertex_normal_cameraspace = V * M * vec4(vertexNormal_modelspace, 0.0);
+    light_position_cameraspace = V * vec4(light.lightPosition_worldspace, 1.0);
+    vertex_UV = vertexUV;
+    vertex_position_lightspace = lightVP * M * vec4(animatedPos, 1.0);
+}

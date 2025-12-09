@@ -219,6 +219,9 @@ CTEST_SUBMIT_RETRY_DELAY:STRING=5
 //Maximum time allowed before CTest will kill the test.
 DART_TESTING_TIMEOUT:STRING=1500
 
+//Path to a program.
+GITCOMMAND:FILEPATH=C:/Program Files/Git/cmd/git.exe
+
 //Dependencies for the target
 GLEW_1130_LIB_DEPENDS:STATIC=general;opengl32;general;glu32;
 
@@ -476,6 +479,8 @@ DART_TESTING_TIMEOUT-ADVANCED:INTERNAL=1
 FIND_PACKAGE_MESSAGE_DETAILS_OpenGL:INTERNAL=[opengl32][c ][v()]
 //Details about finding Threads
 FIND_PACKAGE_MESSAGE_DETAILS_Threads:INTERNAL=[TRUE][v()]
+//ADVANCED property for variable: GITCOMMAND
+GITCOMMAND-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: GLFW_BUILD_DOCS
 GLFW_BUILD_DOCS-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: GLFW_BUILD_EXAMPLES

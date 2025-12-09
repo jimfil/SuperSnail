@@ -134,8 +134,8 @@ add_executable(ergasia
   ergasia/shaders/StandardShading.vertexshader
   ergasia/shaders/Depth.fragmentshader
   ergasia/shaders/Depth.vertexshader
-  ergasia/shaders/MiniMap.fragmentshader
-  ergasia/shaders/MiniMap.vertexshader
+  ergasia/shaders/snail.fragmentshader
+  ergasia/shaders/snail.vertexshader
   ergasia/shaders/ShadowMapping.fragmentshader
   ergasia/shaders/ShadowMapping.vertexshader
   

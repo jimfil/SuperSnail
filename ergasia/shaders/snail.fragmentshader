@@ -11,7 +11,6 @@ uniform sampler2D diffuseColorSampler;
 uniform sampler2D specularColorSampler;
 uniform sampler2D snailColorSampler;
 
-uniform int useTexture = 0;
 
 
 // light properties
@@ -86,18 +85,11 @@ float ShadowCalculation(vec4 fragPositionLightspace,sampler2D shadowMap, vec4 no
 
 void phong(float visibility) {
    
-    vec4 _Ks = mtl.Ks;
-    vec4 _Kd = mtl.Kd;
-    vec4 _Ka = mtl.Ka;
-    float _Ns = mtl.Ns;
-
-    // use texture for materials
-    if (useTexture == 1) {
-        _Ks = vec4(texture(specularColorSampler, vertex_UV).rgb, 1.0);
-        _Kd = vec4(texture(diffuseColorSampler, vertex_UV).rgb, 1.0);
-        _Ka = vec4(0.05 * _Kd.rgb, _Kd.a);
-        _Ns = 10;
-    }
+    vec4 _Ks = vec4(texture(snailColorSampler, vertex_UV).rgb, 1.0);
+    vec4 _Kd = vec4(texture(snailColorSampler, vertex_UV).rgb, 1.0);
+    vec4 _Ka = vec4(0.05 * _Kd.rgb, _Kd.a);
+    float _Ns = 10;
+    
     
     // model ambient intensity (Ia)
     vec4 Ia = (light.La )* _Ka;

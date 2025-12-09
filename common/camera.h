@@ -3,6 +3,8 @@
 
 #include <glm/glm.hpp>
 
+class Snail;
+
 class Camera {
 public:
     GLFWwindow* window;
@@ -21,7 +23,7 @@ public:
     float fovSpeed;
 
     Camera(GLFWwindow* window);
-    void update();
+    void update(Snail* snail);
 };
 
 #endif

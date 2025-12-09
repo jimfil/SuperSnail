@@ -107,10 +107,10 @@
     <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\Depth.vertexshader">
       <Filter>shaders</Filter>
     </None>
-    <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\MiniMap.fragmentshader">
+    <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\snail.fragmentshader">
       <Filter>shaders</Filter>
     </None>
-    <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\MiniMap.vertexshader">
+    <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\snail.vertexshader">
       <Filter>shaders</Filter>
     </None>
     <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\ShadowMapping.fragmentshader">

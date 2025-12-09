@@ -417,9 +417,9 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     </None>
     <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\Depth.vertexshader">
     </None>
-    <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\MiniMap.fragmentshader">
+    <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\snail.fragmentshader">
     </None>
-    <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\MiniMap.vertexshader">
+    <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\snail.vertexshader">
     </None>
     <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\ShadowMapping.fragmentshader">
     </None>

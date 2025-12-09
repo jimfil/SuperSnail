@@ -11,7 +11,7 @@ public:
     float b, k, s;
     glm::vec3 a;
     glm::mat4 snailModelMatrix;
-
+	bool isRetracted;
     Snail(glm::vec3 pos, glm::vec3 vel, float scalar, float mass,
         glm::vec3 anchor, float stiffness, float damping);
     ~Snail();
