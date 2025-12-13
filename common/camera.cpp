@@ -45,10 +45,10 @@ void Camera::update(Snail* snail) {
     float camDist = 40.0f;   
     
     vec3 localOffset = vec3(0.0f, camHeight, -camDist);
-    vec3 worldOffset = snail->q * localOffset;
+    vec3 worldOffset = localOffset;
     
     position = snail->x + worldOffset;
-    vec3 lookTarget = snail->x + (lookDirection * 5.0f);
+    vec3 lookTarget = snail->x + snail->q *(lookDirection * 5.0f);
     vec3 snailUp = snail->q * vec3(0, 1, 0);
 
     projectionMatrix = perspective(radians(FoV), (float)width/(float)height, 0.1f, 300.0f);

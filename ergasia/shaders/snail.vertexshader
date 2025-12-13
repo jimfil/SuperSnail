@@ -31,19 +31,26 @@ void main() {
 
     // --- CREEPING ANIMATION (Mesh Manipulation) ---
     // Apply a sine wave based on position and time, scaled by speed
-    float wave = sin(animatedPos.z * 15.0 + time * 10.0) * (snailSpeed * 0.05);
+    float wave = sin(animatedPos.x * 6.0 + animatedPos.z * 2.0 + time * 6.0) * (snailSpeed * 0.05);
     
     // Only animate the bottom "foot" of the snail (assuming low Y coords)
     if(animatedPos.y < 0.2) { 
-        animatedPos.y += wave;
+        animatedPos.x += wave;
+        
     }
 
     // --- RETRACT ANIMATION ---
     // Shrink the mesh toward the shell center (assume 0,0,0 in model space)
     // Masking: Usually you'd check vertex color or weight. 
     // Here we check if vertex is part of the 'soft' front/bottom (Z > 0)
-    if(animatedPos.z > -0.5) { 
-        animatedPos = mix(animatedPos, vec3(0.0, 0.5, -0.5), retractFactor);
+    if( animatedPos.y < 0.35) { 
+        animatedPos = mix(animatedPos, vec3(0.0, 0.35, 0), retractFactor);
+    }
+    if (animatedPos.z > 1.4){
+     animatedPos = mix(animatedPos, vec3(0.0, 0.35, 0), retractFactor);
+    }
+    if (retractFactor > 0.0) {
+        animatedPos.y -= retractFactor * 0.35;
     }
 
     // Standard Matrix Transformations

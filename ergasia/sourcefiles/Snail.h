@@ -18,6 +18,8 @@ public:
 
     void draw();
     void update(float t = 0, float dt = 0);
+    void retract();
+    void goOut();
 
 };
 

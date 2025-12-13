@@ -244,7 +244,7 @@ void drawSnail(GLuint program, GLuint modelLocation, float time, float speed, fl
     // Light VP (Shadow Projection)
     mat4 lightVP = light->lightVP();
     glUniformMatrix4fv(snailLightVPLocation, 1, GL_FALSE, &lightVP[0][0]);
-
+	
     snail->draw();
 }
 
@@ -271,7 +271,7 @@ void depth_pass() { // Removed matrix arguments, they are taken from light->ligh
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void lighting_pass(mat4 viewMatrix, mat4 projectionMatrix) {
+void lighting_pass(mat4 viewMatrix, mat4 projectionMatrix, float retractFactor) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, W_WIDTH, W_HEIGHT);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -298,7 +298,6 @@ void lighting_pass(mat4 viewMatrix, mat4 projectionMatrix) {
 
     // Draw Snail with animation parameters
     float snailSpeed = length(snail->v); // magnitude of velocity for creep animation
-    float retractFactor = 0.0f; // placeholder, update in mainLoop later
 
     drawSnail(snailShaderProgram, snailModelMatrixLocation, (float)glfwGetTime(), snailSpeed, retractFactor);
 }
@@ -319,7 +318,7 @@ void mainLoop() {
 
     // Flags to check for user input (for sliding fix)
     bool isMoving = false;
-
+    bool isControlKeyHeld = false;
     // Snail Retract/Animation Variables
     float retractTarget = 0.0f; // Target for retracting (1.0 = fully retracted)
     float retractCurrent = 0.0f; // Current animation progress (0.0 to 1.0)
@@ -347,14 +346,20 @@ void mainLoop() {
         }
 
         // Check for Retract Key (Step 3 Setup)
-        if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
-            retractTarget = 1.0f;
-            isMoving = false; // Cannot move while retracting
-        }
-        else {
-            retractTarget = 0.0f;
-        }
+        bool controlPressed = (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS);
 
+        if (controlPressed && !isControlKeyHeld){
+            isMoving = false; // Cannot move while retracting
+            if (retractTarget == 0.0f) {
+                retractTarget = 1.0f;
+            }
+            else {
+                retractTarget = 0.0f;
+            }
+
+
+        }
+        isControlKeyHeld = controlPressed;
         // Animation Update (smooth transition)
         if (retractCurrent < retractTarget) {
             retractCurrent += retractSpeed * dt;
@@ -420,7 +425,7 @@ void mainLoop() {
 
         mat4 projectionMatrix = camera->projectionMatrix;
         mat4 viewMatrix = camera->viewMatrix;
-        lighting_pass(viewMatrix, projectionMatrix);
+        lighting_pass(viewMatrix, projectionMatrix, retractCurrent);
 
         t += dt;
         glfwSwapBuffers(window);

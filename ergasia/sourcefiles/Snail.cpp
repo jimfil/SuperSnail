@@ -11,7 +11,6 @@ Snail::Snail(
     : a(anchor), k(stiffness), b(damping) {
     mesh = new Drawable("models/Mesh_Snail.obj");
     isRetracted = false;
-
     s = scalar;
     m = mass;
     x = pos;
@@ -45,4 +44,13 @@ void Snail::update(float t, float dt) {
     mat4 rotation = mat4(R);
 #endif
     snailModelMatrix = tranlation * rotation  * scale;
+}
+
+
+void Snail::retract() {
+    isRetracted = true;
+}
+
+void Snail::goOut() {
+    isRetracted = false;
 }
