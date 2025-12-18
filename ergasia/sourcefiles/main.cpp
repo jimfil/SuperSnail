@@ -334,22 +334,13 @@ void mainLoop() {
         camera->update(snail);
 
         // --- 1. Input Handling and Velocity ---
-        isMoving = false;
-
-        // Check for movement keys
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS ||
-            glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS ||
-            glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS ||
-            glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        {
-            isMoving = true;
-        }
+        
 
         // Check for Retract Key (Step 3 Setup)
         bool controlPressed = (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS);
 
         if (controlPressed && !isControlKeyHeld){
-            isMoving = false; // Cannot move while retracting
+            
             if (retractTarget == 0.0f) {
                 retractTarget = 1.0f;
             }
@@ -369,41 +360,47 @@ void mainLoop() {
         }
         retractCurrent = glm::clamp(retractCurrent, 0.0f, 1.0f);
 
+        if (retractTarget == 0.0f) {
+            snail->isRetracted = false;
+        }
+        else if (retractCurrent == 1.0f) {
+            snail->isRetracted = true;
+		}
 
-        vec3 snailForward = snail->q * vec3(0, 0, -1); // Assuming -Z is forward
+
+        vec3 snailForward = snail->q * vec3(0, 0, -1); //-Z is forward
+        vec3 snailRight = snail->q * vec3(1, 0, 0);
+
 
         // --- 2. Physics Update (Forcing) ---
         snail->forcing = [&](float t, const vector<float>& y)->vector<float> {
             vector<float> f(6, 0.0f);
 
             // Apply gravity only if not grounded (or if retracted)
-            if (!isGrounded && retractCurrent < 0.9f) { // Added tolerance for retract check
+            if (snail->isRetracted) { // Added tolerance for retract check
                 f[1] = snail->m * g * (-1);
             }
+            
 
             // Add air resistance/damping if retracted
-            if (retractCurrent > 0.9f) {
-                // simple damping: f = -k * v
-                f[0] = -snail->v.x * snail->m * 5.0f;
-                f[1] = -snail->v.y * snail->m * 5.0f;
-                f[2] = -snail->v.z * snail->m * 5.0f;
-            }
+            //if (retractCurrent > 0.9f) {
+            //    // simple damping: f = -k * v
+            //    f[0] = -snail->v.x * snail->m * 5.0f;
+            //    f[1] = -snail->v.y * snail->m * 5.0f;
+            //    f[2] = -snail->v.z * snail->m * 5.0f;
+            //}
 
             return f;
             };
 
-        isGrounded = handleSnailTerrainCollision(snail, terrain, !isMoving);
+        isGrounded = handleSnailTerrainCollision(snail, terrain);
 
-        // --- 4. Movement Input ---
-        if (isGrounded && isMoving && retractCurrent < 0.9f) { // Cannot move when retracted
-            float turnSpeed = radians(100.0f) * dt; // Increased turn speed for better feel
+        if (isGrounded && retractCurrent == 0.0f) { 
+            float turnSpeed = radians(100.0f) * dt; 
             float moveSpeed = 5.0f;
 
-            // Allow movement only in snail's current orientation
             if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) snail->v -= snailForward * moveSpeed;
-            if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) snail->v += snailForward * moveSpeed * 0.5f; // Slower reverse
 
-            // Rotation (Yaw)
             if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
                 quat turn = angleAxis(-turnSpeed, vec3(0, 1, 0));
                 snail->q = normalize(snail->q * turn);
@@ -412,10 +409,21 @@ void mainLoop() {
                 quat turn = angleAxis(turnSpeed, vec3(0, 1, 0));
                 snail->q = normalize(snail->q * turn);
             }
-
-            // Sync momentum after adding input velocity
             snail->P = snail->v * snail->m;
         }
+        else if(isGrounded && retractCurrent == 1.0f) {
+            float turnSpeed = radians(100.0f) * dt;
+            float moveSpeed = 0.5f;
+
+            if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) snail->v -= snailForward * moveSpeed;
+            if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) snail->v += snailForward * moveSpeed;
+            if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) snail->v += snailRight * moveSpeed;
+            if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) snail->v -= snailRight * moveSpeed;
+                
+            snail->P = snail->v * snail->m;
+        }
+
+
 
         // Apply physics step
         snail->update(t, dt);

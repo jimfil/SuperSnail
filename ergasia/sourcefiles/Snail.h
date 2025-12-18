@@ -7,7 +7,7 @@ class Drawable;
 
 class Snail : public RigidBody {
 public:
-    Drawable *mesh;
+    Drawable *mesh,*mesh_retracted;
     float b, k, s;
     glm::vec3 a;
     glm::mat4 snailModelMatrix;
@@ -18,9 +18,6 @@ public:
 
     void draw();
     void update(float t = 0, float dt = 0);
-    void retract();
-    void goOut();
-
 };
 
 #endif

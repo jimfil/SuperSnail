@@ -10,6 +10,8 @@ Snail::Snail(
     vec3 anchor, float stiffness, float damping)
     : a(anchor), k(stiffness), b(damping) {
     mesh = new Drawable("models/Mesh_Snail.obj");
+    mesh_retracted = new Drawable("models/Mesh_Snail_Retracted.obj");
+
     isRetracted = false;
     s = scalar;
     m = mass;
@@ -24,8 +26,15 @@ Snail::~Snail() {
 }
 
 void Snail::draw() {
-    mesh->bind();
-    mesh->draw();
+    if (isRetracted) {
+        mesh_retracted->bind();
+        mesh_retracted->draw();
+    }
+	else{
+        mesh->bind();
+        mesh->draw();
+    }
+    
     
 }
 
@@ -47,10 +56,3 @@ void Snail::update(float t, float dt) {
 }
 
 
-void Snail::retract() {
-    isRetracted = true;
-}
-
-void Snail::goOut() {
-    isRetracted = false;
-}
