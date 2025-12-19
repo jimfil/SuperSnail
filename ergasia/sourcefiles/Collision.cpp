@@ -5,16 +5,20 @@
 #include "snail.h"
 using namespace glm;
 
-bool handleSnailTerrainCollision(Snail* snail, Heightmap* terrain) {
+const float g = 9.80665f;
+
+bool handleSnailTerrainCollision(Snail* snail, Heightmap* terrain,float dt) {
     if (!snail || !terrain) return false; // Safety check
 
     float groundHeight = terrain->getHeightAt(snail->x.x, snail->x.z);
-    float radius = 1.53f;
+    float radius = 1.73f;
     float snailBottom = snail->x.y - radius;
+    vec3 targetUp;
+    vec3 targetForward;
 
     if (!(snail->isRetracted)) {
 
-        snail->x.y = groundHeight + radius + 0.15f;
+        snail->x.y = groundHeight + radius + 0.01f;
 
         snail->v.y = 0;
         snail->v.x = 0;
@@ -22,23 +26,23 @@ bool handleSnailTerrainCollision(Snail* snail, Heightmap* terrain) {
 
         snail->P = snail->v * snail->m;
 
-        glm::vec3 targetUp = terrain->getNormalAt(snail->x.x, snail->x.z);
-        glm::vec3 targetForward;
+        
+        targetUp = terrain->getNormalAt(snail->x.x, snail->x.z);
 
-        targetForward = snail->q * glm::vec3(0, 0, -1);
+        targetForward = snail->q * vec3(0, 0, -1);
 
-        glm::vec3 newY = targetUp;
-        glm::vec3 newX = glm::normalize(glm::cross(targetForward, newY));
-        if (glm::length(newX) < 0.001f) newX = glm::normalize(glm::cross(glm::vec3(1, 0, 0), newY));
-        glm::vec3 newZ = glm::normalize(glm::cross(newX, newY));
+        vec3 newY = targetUp;
+        vec3 newX = normalize(cross(targetForward, newY));
+        if (length(newX) < 0.001f) newX = normalize(cross(vec3(1, 0, 0), newY));
+        vec3 newZ = normalize(cross(newX, newY));
 
-        glm::mat3 targetRotMat;
+        mat3 targetRotMat;
         targetRotMat[0] = newX;
         targetRotMat[1] = newY;
         targetRotMat[2] = newZ;
 
-        glm::quat targetQ = glm::quat_cast(targetRotMat);
-        snail->q = glm::normalize(glm::slerp(snail->q, targetQ, 0.2f)); // Increased smoothing speed slightly
+        quat targetQ = quat_cast(targetRotMat);
+        snail->q = normalize(slerp(snail->q, targetQ, 0.2f)); // Increased smoothing speed slightly
 
         
         
@@ -50,34 +54,9 @@ bool handleSnailTerrainCollision(Snail* snail, Heightmap* terrain) {
 
     if (snailBottom < groundHeight) {
 
+		targetUp = terrain->getNormalAt(snail->x.x, snail->x.z);
 
-        snail->x.y = groundHeight + radius;
-
-        snail->v.y *= 0.8;
-        snail->v.x *= 0.8;
-        snail->v.z *= 0.8;
-
-        snail->P = snail->v * snail->m;
-
-        glm::vec3 targetUp = terrain->getNormalAt(snail->x.x, snail->x.z);
-        glm::vec3 targetForward;
-
-        targetForward = snail->q * glm::vec3(0, 0, -1); 
-
-        glm::vec3 newY = targetUp;
-        glm::vec3 newX = glm::normalize(glm::cross(targetForward, newY));
-        if (glm::length(newX) < 0.001f) newX = glm::normalize(glm::cross(glm::vec3(1, 0, 0), newY));
-        glm::vec3 newZ = glm::normalize(glm::cross(newX, newY));
-
-        glm::mat3 targetRotMat;
-        targetRotMat[0] = newX;
-        targetRotMat[1] = newY;
-        targetRotMat[2] = newZ;
-
-        glm::quat targetQ = glm::quat_cast(targetRotMat);
-        snail->q = glm::normalize(glm::slerp(snail->q, targetQ, 0.2f));
-
-   
+        snail->x.y = groundHeight + radius + 0.01f;
         
 
         return true; 

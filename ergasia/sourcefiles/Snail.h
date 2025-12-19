@@ -8,12 +8,12 @@ class Drawable;
 class Snail : public RigidBody {
 public:
     Drawable *mesh,*mesh_retracted;
-    float b, k, s;
-    glm::vec3 a;
+    float s;
     glm::mat4 snailModelMatrix;
-	bool isRetracted;
-    Snail(glm::vec3 pos, glm::vec3 vel, float scalar, float mass,
-        glm::vec3 anchor, float stiffness, float damping);
+	bool isRetracted; 
+    float radius;
+          
+    Snail(glm::vec3 pos, float scalar, float mass);
     ~Snail();
 
     void draw();

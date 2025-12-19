@@ -6,19 +6,18 @@
 using namespace glm;
 
 Snail::Snail(
-    vec3 pos, vec3 vel, float scalar, float mass,
-    vec3 anchor, float stiffness, float damping)
-    : a(anchor), k(stiffness), b(damping) {
+    vec3 pos, float scalar, float mass){
     mesh = new Drawable("models/Mesh_Snail.obj");
     mesh_retracted = new Drawable("models/Mesh_Snail_Retracted.obj");
 
     isRetracted = false;
     s = scalar;
+	radius = 1.73f * s; 
     m = mass;
     x = pos;
-    v = vel;
     P = m * v;
-   
+
+    I_inv = mat3(1.0f / (0.4f * m * radius * radius));
 }
 
 Snail::~Snail() {
@@ -42,7 +41,8 @@ void Snail::update(float t, float dt) {
     //integration
     advanceState(t, dt);
 
-    float springLength = glm::distance(a, x);
+    
+
 
     // compute model matrix
     mat4 scale = glm::scale(mat4(), vec3(s, s, s));

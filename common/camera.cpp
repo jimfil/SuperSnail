@@ -26,34 +26,34 @@ void Camera::update(Snail* snail) {
     glfwGetWindowSize(window, &width, &height);
     glfwSetCursorPos(window, width / 2, height / 2);
 
+    // 1. Update angles based on mouse movement
     horizontalAngle += mouseSpeed * float(width / 2 - xPos);
-    verticalAngle += mouseSpeed * float(height / 2 - yPos);
+    verticalAngle -= mouseSpeed * float(height / 2 - yPos);
 
+    // 2. Clamp vertical angle to prevent the camera from flipping over the top/bottom
+    if (verticalAngle > 1.5f) verticalAngle = 1.5f;
+    if (verticalAngle < -1.5f) verticalAngle = -1.5f;
 
-    vec3 right(
-        sin(horizontalAngle - 3.14f / 2.0f),
-        0,
-        cos(horizontalAngle - 3.14f / 2.0f)
-    );
+    // 3. Spherical Coordinates to Cartesian Mapping
+    // This calculates the offset from the snail based on your mouse angles
+    float camDist = 40.0f;
 
-    vec3 lookDirection(
-        cos(verticalAngle) * sin(horizontalAngle),
-        sin(verticalAngle),
-        cos(verticalAngle) * cos(horizontalAngle)
-    );
-    vec3 up = cross(right, lookDirection);
+    vec3 offset;
+    offset.x = camDist * cos(verticalAngle) * sin(horizontalAngle);
+    offset.y = camDist * sin(verticalAngle);
+    offset.z = camDist * cos(verticalAngle) * cos(horizontalAngle);
 
-    float camHeight = 20.0f; 
-    float camDist = 40.0f;   
-    
-    vec3 localOffset = vec3(0.0f, camHeight, -camDist);
-    vec3 worldOffset = localOffset;
-    
-    position = snail->x + worldOffset;
-    vec3 lookTarget = snail->x + lookDirection;
-    vec3 snailUp = snail->q * vec3(0, 1, 0);
+    // 4. Set Camera Position and Target
+    // Position is the snail's center plus the calculated orbit offset
+    position = snail->x + offset;
 
-    projectionMatrix = perspective(radians(FoV), (float)width/(float)height, 0.1f, 300.0f);
+    // Target is simply the snail itself
+    vec3 lookTarget = snail->x;
+
+    // 5. Fixed "Up" vector usually works best for orbit cameras to prevent spinning
+    vec3 up = vec3(0, 1, 0);
+
+    projectionMatrix = perspective(radians(FoV), (float)width / (float)height, 0.1f, 300.0f);
     viewMatrix = lookAt(position, lookTarget, up);
 
     lastTime = currentTime;

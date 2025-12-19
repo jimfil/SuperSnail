@@ -6,6 +6,6 @@
 #include "heightmap.h"
 class Box;
 class Sphere;
-bool handleSnailTerrainCollision(Snail* snail, Heightmap* terrain);
+bool handleSnailTerrainCollision(Snail* snail, Heightmap* terrain,float dt);
 
 #endif

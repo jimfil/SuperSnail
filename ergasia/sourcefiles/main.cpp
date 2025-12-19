@@ -1,4 +1,4 @@
-#include <iostream>
+﻿#include <iostream>
 #include <string>
 
 #include <GL/glew.h>
@@ -193,7 +193,7 @@ void createContext() {
     float spawnZ = 0.0f;
     float spawnY = terrain->getHeightAt(spawnX, spawnZ);
     vec3 initPos = vec3(spawnX, spawnY + 1.0f, spawnZ);
-    snail = new Snail(initPos, vec3(0.0f, 0.0f, 0.0f), 1.0f, 0.2f, initPos, 1.0f, 0.1f);
+    snail = new Snail(initPos, 1.0f, 0.2f);
 }
 
 void drawTerrain(GLuint program, GLuint modelLocation, GLuint diffuseSampler) {
@@ -373,27 +373,127 @@ void mainLoop() {
 
 
         // --- 2. Physics Update (Forcing) ---
-        snail->forcing = [&](float t, const vector<float>& y)->vector<float> {
-            vector<float> f(6, 0.0f);
+        
 
-            // Apply gravity only if not grounded (or if retracted)
-            if (snail->isRetracted) { // Added tolerance for retract check
-                f[1] = snail->m * g * (-1);
-            }
-            
+        isGrounded = handleSnailTerrainCollision(snail, terrain,dt);
 
-            // Add air resistance/damping if retracted
-            //if (retractCurrent > 0.9f) {
-            //    // simple damping: f = -k * v
-            //    f[0] = -snail->v.x * snail->m * 5.0f;
-            //    f[1] = -snail->v.y * snail->m * 5.0f;
-            //    f[2] = -snail->v.z * snail->m * 5.0f;
-            //}
+        snail->forcing = [&](float t, const vector<float>& y) -> vector<float>
+            {
+                vector<float> f(6, 0.0f);
+                if (!snail->isRetracted) {
+                    float stopDamping = 10.0f; // Very strong braking
 
-            return f;
+                    // Linear Braking
+                    f[0] = -snail->v.x * stopDamping * snail->m;
+                    f[1] = -snail->v.y * stopDamping * snail->m;
+                    f[2] = -snail->v.z * stopDamping * snail->m;
+
+                    // Angular Braking (Stop spinning)
+                    f[3] = -snail->w.x * stopDamping;
+                    f[4] = -snail->w.y * stopDamping;
+                    f[5] = -snail->w.z * stopDamping;
+
+                    return f;
+                }
+
+                const float muK = 0.35f;
+                const float muS = 0.55f;
+                const float inputForce = 1.2f;
+                const float BIAS = 1e-4f;
+
+                vec3 gravity(0.0f, -snail->m * g, 0.0f);
+                vec3 totalForce = gravity;
+                vec3 totalTorque(0.0f);
+
+                if (isGrounded)
+                {
+                    vec3 n = normalize(terrain->getNormalAt(snail->x.x, snail->x.z));
+                    vec3 up(0, 1, 0);
+
+                    // ---- Cancel normal gravity
+                    vec3 gN = dot(gravity, n) * n;
+                    vec3 gT = gravity - gN;
+                    totalForce -= gN;
+
+                    // ---- CAMERA-RELATIVE BASIS ----
+                    // 1. Get the camera's forward direction on the flat XZ plane
+                    // Note: horizontalAngle + PI/2 usually aligns with looking "Forward" in many camera setups
+                    vec3 camForwardFlat = normalize(vec3(sin(camera->horizontalAngle), 0, cos(camera->horizontalAngle)));
+
+                    // 2. Project camera forward onto the slope
+                    vec3 slopeForward = camForwardFlat - dot(camForwardFlat, n) * n;
+                    if (length(slopeForward) < BIAS) {
+                        // Fallback if looking straight down/up a cliff
+                        slopeForward = vec3(0, 0, -1) - dot(vec3(0, 0, -1), n) * n;
+                    }
+                    slopeForward = normalize(slopeForward);
+
+                    vec3 slopeRight = normalize(cross(slopeForward, n));
+
+                    vec3 vT = snail->v - dot(snail->v, n) * n;
+
+                    float N = snail->m * g * clamp(dot(n, up), 0.0f, 1.0f);
+
+                    vec3 drive(0.0f);
+                    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) drive -= slopeForward; 
+                    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) drive += slopeForward; 
+                    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) drive -= slopeRight;   
+                    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) drive += slopeRight;  
+
+                    if (length(drive) > BIAS)
+                        drive = normalize(drive) * inputForce;
+
+                    vec3 friction(0.0f);
+                    if (length(vT) < 0.05f && length(drive + gT) < muS * N)
+                    {
+                        // STATIC friction  cancel the desire to move
+                        friction = -(drive + gT);
+                    }
+                    else if (length(vT) > BIAS)
+                    {
+                        // KINETIC friction  slide
+                        friction = -normalize(vT) * muK * N;
+                    }
+
+                    vec3 tangentForce = gT + drive + friction;
+
+                    float maxT = muK * N;
+                    if (length(tangentForce) > maxT && length(vT) > 0.1f)
+                        tangentForce = normalize(tangentForce) * maxT;
+                 
+
+                    totalForce += tangentForce;
+
+
+
+                    vec3 velocity = snail->v;
+                    float speed = length(velocity);
+
+                    if (speed > 0.01f) {
+                        vec3 rollAxis = normalize(cross(n, velocity));
+
+                        // 2. Add Torque based on speed (v = w * r  ->  w = v / r)
+                        // This 'pushes' the rotation to match the ground speed
+                        float radius = snail->radius; // Replace with your actual shell radius
+                        vec3 idealOmega = rollAxis * (speed / radius);
+                        vec3 torque = (idealOmega - snail->w) * 10.0f; // 10.0f is stiffness
+
+                        totalTorque += torque;
+                    }
+                }
+
+                f[0] = totalForce.x;
+                f[1] = totalForce.y;
+                f[2] = totalForce.z;
+
+                f[3] = totalTorque.x;
+                f[4] = totalTorque.y;
+                f[5] = totalTorque.z;
+                return f;
             };
 
-        isGrounded = handleSnailTerrainCollision(snail, terrain);
+
+
 
         if (isGrounded && retractCurrent == 0.0f) { 
             float turnSpeed = radians(100.0f) * dt; 
@@ -409,17 +509,6 @@ void mainLoop() {
                 quat turn = angleAxis(turnSpeed, vec3(0, 1, 0));
                 snail->q = normalize(snail->q * turn);
             }
-            snail->P = snail->v * snail->m;
-        }
-        else if(isGrounded && retractCurrent == 1.0f) {
-            float turnSpeed = radians(100.0f) * dt;
-            float moveSpeed = 0.5f;
-
-            if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) snail->v -= snailForward * moveSpeed;
-            if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) snail->v += snailForward * moveSpeed;
-            if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) snail->v += snailRight * moveSpeed;
-            if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) snail->v -= snailRight * moveSpeed;
-                
             snail->P = snail->v * snail->m;
         }
 
