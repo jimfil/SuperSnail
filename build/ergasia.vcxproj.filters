@@ -119,6 +119,18 @@
     <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\ShadowMapping.vertexshader">
       <Filter>shaders</Filter>
     </None>
+    <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\skybox.fragmentshader">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\skybox.vertexshader">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\ui.vertexshader">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\ui.fragmentshader">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">

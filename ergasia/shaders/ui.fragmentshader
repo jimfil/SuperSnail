@@ -1,0 +1,7 @@
+#version 330 core
+out vec4 color;
+uniform vec3 barColor;
+
+void main() {
+    color = vec4(barColor.rgb, 1.0);
+}

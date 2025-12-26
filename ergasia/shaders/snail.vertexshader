@@ -31,14 +31,15 @@ void main() {
 
     // --- CREEPING ANIMATION (Mesh Manipulation) ---
     // Apply a sine wave based on position and time, scaled by speed
-    float wave = sin( animatedPos.z * 2.0 + time * 6.0) * (snailSpeed * 0.05);
+    if (snailSpeed != 0) {
+    float wave = sin( animatedPos.z * 2.0 + time * 6.0) * 0.25f;
     
     // Only animate the bottom "foot" of the snail (assuming low Y coords)
     if(animatedPos.y < -1.3) { 
         animatedPos.x += wave;
         
     }
-
+    }
     
     if(retractFactor<1.0f && (animatedPos.y < -1.23 || animatedPos.z > 2.0)) { 
         animatedPos = mix(animatedPos, vec3(0.0, 0.35, 0), retractFactor);

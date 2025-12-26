@@ -1,0 +1,13 @@
+#version 330 core
+
+layout(location = 0) in vec3 vertexPosition;
+
+out vec2 TexCoords;
+
+uniform mat4 orthoProjection;
+uniform mat4 model;
+
+void main() {
+    // model handles position (offset) and scale (size)
+    gl_Position = model * vec4(vertexPosition, 1.0);
+}

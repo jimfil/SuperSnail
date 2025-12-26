@@ -30,7 +30,7 @@ public:
         glm::vec4 init_Ls,
         glm::vec3 init_position);
   
-    void update();
+    void update(glm::vec3 centerPosition);
     
 
     glm::mat4 lightVP();

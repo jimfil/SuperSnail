@@ -138,6 +138,11 @@ add_executable(ergasia
   ergasia/shaders/snail.vertexshader
   ergasia/shaders/ShadowMapping.fragmentshader
   ergasia/shaders/ShadowMapping.vertexshader
+  ergasia/shaders/skybox.fragmentshader
+  ergasia/shaders/skybox.vertexshader
+  ergasia/shaders/ui.vertexshader
+  ergasia/shaders/ui.fragmentshader
+
   
   )
 target_link_libraries(ergasia

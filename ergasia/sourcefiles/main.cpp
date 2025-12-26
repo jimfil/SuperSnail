@@ -23,6 +23,7 @@
 #include "MassSpringDamper.h"
 #include "Collision.h"
 #include <common/texture.h>
+#include <stb_image_aug.h>
 
 using namespace std;
 using namespace glm;
@@ -38,18 +39,18 @@ void uploadLight(const Light& light);
 void uploadSnailMaterial(const Material& mtl);
 void uploadSnailLight(const Light& light);
 
-#define W_WIDTH 1920
-#define W_HEIGHT 1080
+#define W_WIDTH 1024
+#define W_HEIGHT 720
 #define TITLE "Super Snail"
-#define SHADOW_WIDTH 1920
-#define SHADOW_HEIGHT 1920
+#define SHADOW_WIDTH 1024
+#define SHADOW_HEIGHT 1024
 #define MATERIALS
 
 // Global variables
 GLFWwindow* window;
 Camera* camera;
 // Renamed the shared shader to terrainProgram for clarity
-GLuint terrainProgram, shaderProgramnoshadows, shadowLoader, snailShaderProgram;
+GLuint terrainProgram, shaderProgramnoshadows, shadowLoader, snailShaderProgram,skyboxShader;
 
 // Terrain/General Shader Uniforms
 GLuint projectionMatrixLocation, viewMatrixLocation, modelMatrixLocation;
@@ -72,6 +73,14 @@ GLuint shadowModelLocation;
 
 GLuint modelDiffuseTexture, snailDiffuseTexture;
 GLuint depthFBO, depthTexture;
+//skybox
+GLuint skyProjectionMatrixLocation, skyViewMatrixLocation;
+GLuint skyboxVAO, skyboxVBO;
+GLuint cubemapTexture;
+
+//stamina bar
+GLuint staminaShader;
+GLint modelLoc, colorLoc;   
 
 struct Material {
     vec4 Ka;
@@ -91,7 +100,7 @@ Light* light = new Light(window,
     vec4{ 1, 1, 1, 1 },
     vec4{ 1, 1, 1, 1 },
     vec4{ 1, 1, 1, 1 },
-    vec3(0, 100, 0)
+    vec3(0, 200, 0)
 );
 
 Cube* cube;
@@ -100,15 +109,133 @@ Box* box;
 MassSpringDamper* msd;
 Heightmap* terrain;
 Snail* snail;
-
+Drawable* quad;
 // Standard acceleration due to gravity
 const float g = 9.80665f;
+
+//load skybox faces
+
+unsigned int loadCubemap(std::vector<std::string> faces) {
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+    int width, height, nrChannels;
+    for (unsigned int i = 0; i < faces.size(); i++) {
+        unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
+        if (data) {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+                0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+            stbi_image_free(data);
+        }
+        else {
+            std::cout << "Cubemap tex failed to load at path: " << faces[i] << std::endl;
+            stbi_image_free(data);
+        }
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    return textureID;
+}
+
+void initSkybox() {
+    std::vector<std::string> faces = {
+        "skybox/posx.jpg", //Right
+        "skybox/negx.jpg", //Left
+        "skybox/posy.jpg", //Top
+        "skybox/negy.jpg", //Bottom
+        "skybox/posz.jpg", //Front
+        "skybox/negz.jpg"  //Back
+    };
+    cubemapTexture = loadCubemap(faces);
+
+    float skyboxVertices[] = {
+        -1.0f,  1.0f, -1.0f,
+        -1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+
+        -1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f
+    };
+    // skybox VAO and VBO
+    glGenVertexArrays(1, &skyboxVAO);
+    glGenBuffers(1, &skyboxVBO);
+    glBindVertexArray(skyboxVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+}
+
+void initUI() {
+    
+    vector<vec3> quadVertices = {
+        vec3(0.0, 0.0, 0.0), // bottom-left
+        vec3(1.0, 0.0, 0.0), // bottom-right
+        vec3(1.0, 1.0, 0.0), // top-right
+        vec3(1.0, 1.0, 0.0), // top-right
+        vec3(0.0, 1.0, 0.0), // top-left
+        vec3(0.0, 0.0, 0.0)  // bottom-left
+    };
+
+    vector<vec2> quadUVs = {
+      vec2(0.0, 0.0),
+      vec2(1.0, 0.0),
+      vec2(1.0, 1.0),
+      vec2(1.0, 1.0),
+      vec2(0.0, 1.0),
+      vec2(0.0, 0.0)
+    };
+
+    quad = new Drawable(quadVertices, quadUVs);
+}
 
 void createContext() {
     // Load Shaders
     terrainProgram = loadShaders("shaders/ShadowMapping.vertexshader", "shaders/ShadowMapping.fragmentshader"); // Used for Terrain
     shadowLoader = loadShaders("shaders/Depth.vertexshader", "shaders/Depth.fragmentshader");
     snailShaderProgram = loadShaders("shaders/snail.vertexshader", "shaders/snail.fragmentshader"); // New Snail Shader
+	skyboxShader = loadShaders("shaders/skybox.vertexshader", "shaders/skybox.fragmentshader");
+    staminaShader = loadShaders("shaders/ui.vertexshader", "shaders/ui.fragmentshader");
 
     // --- Terrain/General Shader Uniforms ---
     projectionMatrixLocation = glGetUniformLocation(terrainProgram, "P");
@@ -156,12 +283,19 @@ void createContext() {
     // --- Shadow Loader Uniforms ---
     shadowViewProjectionLocation = glGetUniformLocation(shadowLoader, "VP");
     shadowModelLocation = glGetUniformLocation(shadowLoader, "M");
+	//skybox uniforms
+	skyViewMatrixLocation = glGetUniformLocation(skyboxShader, "view");
+	skyProjectionMatrixLocation = glGetUniformLocation(skyboxShader, "projection");
+    modelLoc = glGetUniformLocation(staminaShader, "model");
+    colorLoc = glGetUniformLocation(staminaShader, "barColor");
 
 
-    Heightmap::HillAlgorithmParameters params(100, 100, 200, 0, 20, 0.01f, 0.6f, 300.0f, 50.0f);
+	// Terrain Initialization
+	Heightmap::HillAlgorithmParameters params(200, 200, 100, 5, 20, 0.0f, 1.0f, 500.0f, 50.0f);
+    // rows, columns, numHills, hillRadiusMin, hillRadiusMax, hillMinHeight, hillMaxHeight, scalar, scalarY
     terrain = new Heightmap(params);
 
-    modelDiffuseTexture = loadSOIL("models/grass.bmp");
+    modelDiffuseTexture = loadSOIL("models/grass_minecraft.bmp");
     snailDiffuseTexture = loadSOIL("models/Tex_Snail.bmp");
 
     // --- Depth Buffer Setup (Unchanged) ---
@@ -194,6 +328,14 @@ void createContext() {
     float spawnY = terrain->getHeightAt(spawnX, spawnZ);
     vec3 initPos = vec3(spawnX, spawnY + 1.0f, spawnZ);
     snail = new Snail(initPos, 1.0f, 0.2f);
+
+
+    //skyboxx
+	initSkybox();
+
+    //stamina bar
+    initUI();
+
 }
 
 void drawTerrain(GLuint program, GLuint modelLocation, GLuint diffuseSampler) {
@@ -248,7 +390,7 @@ void drawSnail(GLuint program, GLuint modelLocation, float time, float speed, fl
     snail->draw();
 }
 
-void depth_pass() { // Removed matrix arguments, they are taken from light->lightVP()
+void depth_pass() { 
     glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
     glBindFramebuffer(GL_FRAMEBUFFER, depthFBO);
     glClear(GL_DEPTH_BUFFER_BIT);
@@ -271,11 +413,67 @@ void depth_pass() { // Removed matrix arguments, they are taken from light->ligh
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+void drawSkybox(mat4 view, mat4 projectionMatrix) {
+    // 1. Change depth function so skybox passes at maximum depth (1.0)
+    glDepthFunc(GL_LEQUAL);
+    glUseProgram(skyboxShader);
+
+    // 2. Remove translation from the view matrix
+    // We convert to mat3 and back to mat4 to keep only rotation
+	mat4 viewMatrix = mat4(mat3(view));
+    glUniformMatrix4fv(skyViewMatrixLocation, 1, GL_FALSE, &viewMatrix[0][0]);
+    glUniformMatrix4fv(skyProjectionMatrixLocation, 1, GL_FALSE, &projectionMatrix[0][0]);
+
+    glBindVertexArray(skyboxVAO);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glBindVertexArray(0);
+    glDepthFunc(GL_LESS);
+}
+
+void drawStaminaBar(float stamina, float maxStamina) {
+    glDisable(GL_DEPTH_TEST);
+    glUseProgram(staminaShader);
+
+    float width = (float)W_WIDTH;
+    float height = (float)W_HEIGHT;
+
+	mat4 translateMat = translate(mat4(1.0f), vec3(-0.95f, -0.8f, 0.0f));
+    float barMaxW = 200.0f;
+    float barH = 20.0f;
+    // Position it at the bottom left area
+    float percentage = glm::clamp(stamina / maxStamina, 0.0f, 1.0f);
+
+    quad->bind();
+    // --- 1. DRAW BACKGROUND (Grey) ---
+    
+    mat4 bgModel = translateMat * scale(mat4(1.0f), vec3(1.0f/ 2.0f,1.0/ 20.0f, 1.0f));
+    // Shift by -0.5 so the 0.5 corner of your quad acts as the 0.0 origin
+
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &bgModel[0][0]);
+    glUniform3f(colorLoc, 0.2f, 0.2f, 0.2f);
+    quad->draw();
+
+    // --- 2. DRAW FILL ---
+    mat4 fgModel = translateMat * scale(mat4(1.0f), vec3(1.0f / 2.0f * percentage, 1.0 / 20.0f, 1.0f));
+
+    vec3 color = (percentage > 0.5f) ? vec3(0.0f, 0.8f, 0.0f) : (percentage > 0.2f ? vec3(0.8f, 0.8f, 0.0f) : vec3(0.8f, 0.0f, 0.0f));
+
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &fgModel[0][0]);
+    glUniform3f(colorLoc, color.x, color.y, color.z);
+    quad->draw();
+
+    glEnable(GL_DEPTH_TEST);
+}
+
+
 void lighting_pass(mat4 viewMatrix, mat4 projectionMatrix, float retractFactor) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, W_WIDTH, W_HEIGHT);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+	
     // --- RENDER TERRAIN (using terrainProgram) ---
     glUseProgram(terrainProgram);
     glUniformMatrix4fv(viewMatrixLocation, 1, GL_FALSE, &viewMatrix[0][0]);
@@ -300,7 +498,11 @@ void lighting_pass(mat4 viewMatrix, mat4 projectionMatrix, float retractFactor) 
     float snailSpeed = length(snail->v); // magnitude of velocity for creep animation
 
     drawSnail(snailShaderProgram, snailModelMatrixLocation, (float)glfwGetTime(), snailSpeed, retractFactor);
+    
+    
 }
+
+
 
 void free() {
     delete terrain;
@@ -332,7 +534,7 @@ void mainLoop() {
 
         glViewport(0, 0, W_WIDTH, W_HEIGHT);
         camera->update(snail);
-
+		light->update(snail->x);
         // --- 1. Input Handling and Velocity ---
         
 
@@ -415,9 +617,6 @@ void mainLoop() {
                     vec3 gT = gravity - gN;
                     totalForce -= gN;
 
-                    // ---- CAMERA-RELATIVE BASIS ----
-                    // 1. Get the camera's forward direction on the flat XZ plane
-                    // Note: horizontalAngle + PI/2 usually aligns with looking "Forward" in many camera setups
                     vec3 camForwardFlat = normalize(vec3(sin(camera->horizontalAngle), 0, cos(camera->horizontalAngle)));
 
                     // 2. Project camera forward onto the slope
@@ -465,23 +664,26 @@ void mainLoop() {
                     totalForce += tangentForce;
 
 
-
-                    vec3 velocity = snail->v;
-                    float speed = length(velocity);
+                    float speed = length(vT);
 
                     if (speed > 0.01f) {
-                        vec3 rollAxis = normalize(cross(n, velocity));
+                        vec3 rollAxis = normalize(cross(n, vT));
 
-                        // 2. Add Torque based on speed (v = w * r  ->  w = v / r)
-                        // This 'pushes' the rotation to match the ground speed
-                        float radius = snail->radius; // Replace with your actual shell radius
+                        //Torque based on speed (v = w * r  ->  w = v / r)
+                        float radius = snail->radius;
                         vec3 idealOmega = rollAxis * (speed / radius);
-                        vec3 torque = (idealOmega - snail->w) * 10.0f; // 10.0f is stiffness
+                        vec3 torque = (idealOmega - snail->w) * 10.0f;
 
                         totalTorque += torque;
+                        
+
                     }
+                    float groundRollingResistance = 3.5f;
+                    totalTorque -= snail->w * groundRollingResistance;
+                    
                 }
 
+                
                 f[0] = totalForce.x;
                 f[1] = totalForce.y;
                 f[2] = totalForce.z;
@@ -494,13 +696,21 @@ void mainLoop() {
 
 
 
-
-        if (isGrounded && retractCurrent == 0.0f) { 
+        snail->isSprinting = false;
+		snail->isMoving = false;
+        if (isGrounded && retractCurrent == 0.0f) {
             float turnSpeed = radians(100.0f) * dt; 
-            float moveSpeed = 5.0f;
+            float moveSpeed;
+            if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS && snail->stamina > 0){
+                moveSpeed = snail->maxSpeed;
+                snail->isSprinting = true;
+            }
+            else  moveSpeed = snail->moveSpeed;
 
-            if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) snail->v -= snailForward * moveSpeed;
-
+            if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+                snail->v -= snailForward * moveSpeed;
+                snail->isMoving = true;
+            }
             if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
                 quat turn = angleAxis(-turnSpeed, vec3(0, 1, 0));
                 snail->q = normalize(snail->q * turn);
@@ -523,7 +733,9 @@ void mainLoop() {
         mat4 projectionMatrix = camera->projectionMatrix;
         mat4 viewMatrix = camera->viewMatrix;
         lighting_pass(viewMatrix, projectionMatrix, retractCurrent);
-
+        //Render Skybox last
+        drawSkybox(viewMatrix, projectionMatrix);
+        drawStaminaBar(snail->stamina,snail->staminaMax);
         t += dt;
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -609,7 +821,7 @@ void uploadLight(const Light& light) {
     glUniform4f(LsLocation, light.Ls.r, light.Ls.g, light.Ls.b, light.Ls.a);
     glUniform3f(lightPositionLocation, light.lightPosition_worldspace.x,
         light.lightPosition_worldspace.y, light.lightPosition_worldspace.z);
-    glUniform1f(lightPowerLocation, 100.0f);
+    glUniform1f(lightPowerLocation, 1000.0f);
 }
 
 void uploadSnailLight(const Light& light) {

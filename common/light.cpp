@@ -26,11 +26,11 @@ Light::Light(GLFWwindow* window,
     targetPosition = glm::vec3(0.0, 0.0, -5.0);
 
 
-    projectionMatrix = ortho(-10.0f, 10.0f, -10.0f, 10.0f, nearPlane, farPlane);
+    projectionMatrix = ortho(-100.0f, 100.0f, -100.0f, 100.0f, nearPlane, farPlane);
 }
 
 
-void Light::update() {
+void Light::update(vec3 centerPosition) {
 
     /*    // Move across z-axis
     if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS) {
@@ -59,10 +59,12 @@ void Light::update() {
     // We have the direction of the light and the point where the light is looking at
     // We will use this information to calculate the "up" vector, 
     // just like we did with the camera
+    vec3 sunOffset = vec3(-30.0f, 60.0f, -30.0f);
+    lightPosition_worldspace = targetPosition + sunOffset;
 
     direction = normalize(targetPosition - lightPosition_worldspace);
 
-
+    
     // converting direction to cylidrical coordinates
     float x = direction.x;
     float y = direction.y;
