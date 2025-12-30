@@ -25,52 +25,25 @@ Light::Light(GLFWwindow* window,
     lightSpeed = 0.1f;
     targetPosition = glm::vec3(0.0, 0.0, -5.0);
 
-
-    projectionMatrix = ortho(-100.0f, 100.0f, -100.0f, 100.0f, nearPlane, farPlane);
+    // Increase these values (e.g., from 50 to 150) to make the "shadow box" bigger
+    float size = 200.0f;
+    projectionMatrix = glm::ortho(-size, size, -size, size, nearPlane, farPlane);
 }
 
 
 void Light::update(vec3 centerPosition) {
 
-    /*    // Move across z-axis
-    if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS) {
-        lightPosition_worldspace += lightSpeed * vec3(0.0, 0.0, 1.0);
-    }
-    if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS) {
-        lightPosition_worldspace -= lightSpeed * vec3(0.0, 0.0, 1.0);
-    }
-    // Move across x-axis
-    if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS) {
-        lightPosition_worldspace += lightSpeed * vec3(1.0, 0.0, 0.0);
-    }
-    if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS) {
-        lightPosition_worldspace -= lightSpeed * vec3(1.0, 0.0, 0.0);
-    }
-    // Move across y-axis
-    if (glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS) {
-        lightPosition_worldspace += lightSpeed * vec3(0.0, 1.0, 0.0);
-    }
-    if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS) {
-        lightPosition_worldspace -= lightSpeed * vec3(0.0, 1.0, 0.0);
-    }
-    */
-
-
-    // We have the direction of the light and the point where the light is looking at
-    // We will use this information to calculate the "up" vector, 
-    // just like we did with the camera
-    vec3 sunOffset = vec3(-30.0f, 60.0f, -30.0f);
+    targetPosition = centerPosition;
+    vec3 sunOffset = vec3(0, 60.0f, 0);
     lightPosition_worldspace = targetPosition + sunOffset;
 
     direction = normalize(targetPosition - lightPosition_worldspace);
 
     
-    // converting direction to cylidrical coordinates
     float x = direction.x;
     float y = direction.y;
     float z = direction.z;
 
-    // We don't need to calculate the vertical angle
     
     float horizontalAngle;
     if (z > 0.0) horizontalAngle = atan(x/z);

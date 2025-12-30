@@ -11,7 +11,7 @@ uniform sampler2D diffuseColorSampler;
 uniform sampler2D specularColorSampler;
 uniform sampler2D snailColorSampler;
 
-uniform int useTexture = 0;
+uniform int useTexture = 1;
 
 
 // light properties
@@ -47,7 +47,7 @@ void main() {
     vec4 N = normalize(vertex_normal_cameraspace);
     vec4 L = normalize(light_position_cameraspace - vertex_position_cameraspace);
     float visibility = 1.0f;
-    visibility -= ShadowCalculation(vertex_position_lightspace,shadowMapSampler, N, L);
+    visibility -= ShadowCalculation(vertex_position_lightspace,shadowMapSampler, N, L) * 0.7f;
 
     phong(visibility);
 }
@@ -75,7 +75,8 @@ float ShadowCalculation(vec4 fragPositionLightspace,sampler2D shadowMap, vec4 no
     }
     shadow /= 9.0;
     
-    if(projCoords.z > 1) shadow = 0.0;
+    // Inside ShadowCalculation, before returning shadow
+    if(projCoords.z > 1.0 || projCoords.z < 0.0||projCoords.x > 1.0 || projCoords.x < 0.0 || projCoords.y > 1.0 || projCoords.y < 0.0) shadow = 0.0;
     
 
 

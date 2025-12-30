@@ -1,0 +1,32 @@
+#version 330 core
+
+// Input vertex data, different for all executions of this shader.
+layout(location = 0) in vec3 vertexPosition_modelspace;
+layout(location = 1) in vec2 vertexUV;
+layout(location = 2) in vec3 vertexNormal_modelspace;
+layout(location = 3) in mat4 instanceMatrix;
+layout(location = 7) in vec3 instanceColor;
+// Uniforms
+uniform mat4 P;
+uniform mat4 V;
+
+// Output data ; will be interpolated for each fragment.
+out vec3 Normal;
+out vec3 FragPos;
+out vec3 FragInstanceColor;
+out vec2 UV;
+
+void main(){
+    // 1. Calculate World Position using the Instance Matrix
+    vec4 worldPosition = instanceMatrix * vec4(vertexPosition_modelspace, 1.0);
+    
+    // 2. Calculate Position on Screen
+    gl_Position =  P * V * worldPosition;
+    UV = vertexUV;
+    // 3. Pass data to fragment shader
+    FragPos = vec3(worldPosition);
+    FragInstanceColor = instanceColor;
+    // Calculate Normal (Rotation only, remove translation)
+    // Note: In production, use a NormalMatrix (transpose(inverse(M))) for non-uniform scaling
+    Normal = mat3(instanceMatrix) * vertexNormal_modelspace; 
+}

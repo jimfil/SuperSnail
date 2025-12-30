@@ -397,6 +397,10 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClInclude Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\heightmap.h" />
     <ClCompile Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\Snail.cpp" />
     <ClInclude Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\Snail.h" />
+    <ClCompile Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\Flower.cpp" />
+    <ClInclude Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\Flower.h" />
+    <ClCompile Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\Menu.cpp" />
+    <ClInclude Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\Menu.h" />
     <ClCompile Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\common\util.cpp" />
     <ClInclude Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\common\util.h" />
     <ClCompile Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\common\shader.cpp" />
@@ -409,9 +413,9 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClInclude Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\common\texture.h" />
     <ClCompile Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\common\light.cpp" />
     <ClInclude Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\common\light.h" />
-    <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\StandardShading.fragmentshader">
+    <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\flower.fragmentshader">
     </None>
-    <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\StandardShading.vertexshader">
+    <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\flower.vertexshader">
     </None>
     <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\Depth.fragmentshader">
     </None>
@@ -432,6 +436,10 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\ui.vertexshader">
     </None>
     <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\ui.fragmentshader">
+    </None>
+    <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\veget.vertexshader">
+    </None>
+    <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\veget.fragmentshader">
     </None>
   </ItemGroup>
   <ItemGroup />

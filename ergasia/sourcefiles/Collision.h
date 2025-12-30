@@ -6,6 +6,8 @@
 #include "heightmap.h"
 class Box;
 class Sphere;
-bool handleSnailTerrainCollision(Snail* snail, Heightmap* terrain,float dt);
+bool handleSnailTerrainCollision(Snail* snail, Heightmap* terrain, bool onTree);
+
+bool handleSnailTreeCollision(Snail* snail, const std::vector<glm::mat4>& treeMatrices);
 
 #endif

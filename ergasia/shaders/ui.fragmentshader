@@ -1,7 +1,18 @@
 #version 330 core
+
+in vec2 UV;
 out vec4 color;
+
+uniform sampler2D myTextureSampler;
 uniform vec3 barColor;
+uniform int useTexture; 
 
 void main() {
-    color = vec4(barColor.rgb, 1.0);
+    if (useTexture == 1) {
+        color = texture(myTextureSampler, UV);
+        if(color.a < 0.1) discard; 
+    } else {
+        
+        color = vec4(barColor, 1.0);
+    }
 }

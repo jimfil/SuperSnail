@@ -28,6 +28,12 @@
     <ClCompile Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\Snail.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\Flower.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\Menu.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\common\util.cpp">
       <Filter>common</Filter>
     </ClCompile>
@@ -72,6 +78,12 @@
     <ClInclude Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\Snail.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\Flower.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\Menu.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\common\util.h">
       <Filter>common</Filter>
     </ClInclude>
@@ -95,10 +107,10 @@
     <CustomBuild Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\StandardShading.fragmentshader">
+    <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\flower.fragmentshader">
       <Filter>shaders</Filter>
     </None>
-    <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\StandardShading.vertexshader">
+    <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\flower.vertexshader">
       <Filter>shaders</Filter>
     </None>
     <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\Depth.fragmentshader">
@@ -129,6 +141,12 @@
       <Filter>shaders</Filter>
     </None>
     <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\ui.fragmentshader">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\veget.vertexshader">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\shaders\veget.fragmentshader">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>

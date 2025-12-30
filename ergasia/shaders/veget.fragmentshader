@@ -1,0 +1,12 @@
+#version 330 core
+out vec4 fragmentColor;
+in vec2 TexCoords;
+uniform sampler2D diffuseTexture;
+
+void main() {
+    vec4 texColor = texture(diffuseTexture, TexCoords);
+    if(texColor.a < 0.1)
+        discard; 
+    fragmentColor = texColor;
+}
+

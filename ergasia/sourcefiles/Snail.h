@@ -10,7 +10,9 @@ public:
     Drawable *mesh,*mesh_retracted;
     float s;
     glm::mat4 snailModelMatrix;
-	bool isRetracted, isSprinting, isMoving;
+	bool isRetracted, isSprinting, isMoving, abilityUnlocked;
+    float retractTarget , retractCurrent; // Target for retracting (1.0 = fully retracted), Current animation progress (0.0 to 1.0)
+    const float retractSpeed = 2.0f ; // Speed of retract/extend animation per second
     float radius;
 	float moveSpeed, maxSpeed;
 	float stamina, staminaMax , staminaDepletionRate, staminaRepletionRate;

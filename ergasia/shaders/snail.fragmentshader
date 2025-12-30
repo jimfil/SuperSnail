@@ -46,7 +46,7 @@ void main() {
     vec4 N = normalize(vertex_normal_cameraspace);
     vec4 L = normalize(light_position_cameraspace - vertex_position_cameraspace);
     float visibility = 1.0f;
-    visibility -= ShadowCalculation(vertex_position_lightspace,shadowMapSampler, N, L);
+    visibility -= ShadowCalculation(vertex_position_lightspace,shadowMapSampler, N, L) * 0.5f;
 
     phong(visibility);
 }

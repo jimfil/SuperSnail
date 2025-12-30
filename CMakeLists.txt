@@ -116,6 +116,10 @@ add_executable(ergasia
   ergasia/sourcefiles/heightmap.h
   ergasia/sourcefiles/Snail.cpp
   ergasia/sourcefiles/Snail.h
+  ergasia/sourcefiles/Flower.cpp
+  ergasia/sourcefiles/Flower.h
+  ergasia/sourcefiles/Menu.cpp
+  ergasia/sourcefiles/Menu.h
 
   common/util.cpp
   common/util.h
@@ -130,8 +134,8 @@ add_executable(ergasia
   common/light.cpp
   common/light.h
 	
-  ergasia/shaders/StandardShading.fragmentshader
-  ergasia/shaders/StandardShading.vertexshader
+  ergasia/shaders/flower.fragmentshader
+  ergasia/shaders/flower.vertexshader
   ergasia/shaders/Depth.fragmentshader
   ergasia/shaders/Depth.vertexshader
   ergasia/shaders/snail.fragmentshader
@@ -142,7 +146,8 @@ add_executable(ergasia
   ergasia/shaders/skybox.vertexshader
   ergasia/shaders/ui.vertexshader
   ergasia/shaders/ui.fragmentshader
-
+  ergasia/shaders/veget.vertexshader
+  ergasia/shaders/veget.fragmentshader
   
   )
 target_link_libraries(ergasia

@@ -11,6 +11,9 @@ Snail::Snail(
     mesh_retracted = new Drawable("models/Mesh_Snail_Retracted.obj");
     isSprinting = false;
     isRetracted = false;
+	abilityUnlocked = false;
+    retractTarget = 0.0f; // Target for retracting (1.0 = fully retracted)
+    retractCurrent = 0.0f; // Current animation progress (0.0 to 1.0)
     s = scalar;
 	radius = 1.73f * s; 
     m = mass;
