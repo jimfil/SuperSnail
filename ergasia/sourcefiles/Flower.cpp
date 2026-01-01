@@ -37,8 +37,8 @@ void Flower::loadMTL(const char* path) {
 void Flower::generatePositions(Heightmap* terrain, int count, float scale) {
     instanceMatrices.clear();
     for (int i = 0; i < count; i++) {
-        float x = (rand() % 100 );
-        float z = (rand() % 100 );
+        float x = (rand() % 1000 - 500 );
+        float z = (rand() % 1000 - 500 );
         float y = terrain->getHeightAt(x, z);
 
         mat4 model = translate(mat4(1.0f), vec3(x, y, z));

@@ -17,10 +17,7 @@
 #include <common/light.h>
 #include "Snail.h"
 #include "heightmap.h"
-#include "Cube.h"
-#include "Sphere.h"
 #include "Flower.h"
-#include "MassSpringDamper.h"
 #include "Collision.h"
 #include <common/model.h>
 #include <common/texture.h>
@@ -96,10 +93,11 @@ int treeVertexCount = 0;
 Flower* redFlower,* purpulFlower, * pizza, *mushroom, *mushroom2;
 
 //menu
-enum GameState { MENU_STATE, GAME_STATE };
+enum GameState { MENU_STATE, GAME_STATE, SETTINGS_STATE};
 GameState currentState;
 Menu* mainMenu;
-
+int desiredTreeCount = 200;   // Default
+int desiredFlowerCount = 20;
 struct Material {
     vec4 Ka; 
     vec4 Kd;
@@ -117,17 +115,12 @@ Light* light = new Light(window,
     vec3(0, 200, 0)
 );
 
-Cube* cube;
-Sphere* sphere[3];
-Box* box;
-MassSpringDamper* msd;
 Heightmap* terrain;
 Snail* snail;
 Drawable* quad;
 
 
 vector<mat4> instanceMatrices;
-int treeCount = 50;
 
 // Standard acceleration due to gravity
 const float g = 9.80665f;
@@ -254,22 +247,19 @@ void generateTreePositions(int amount) {
         float x = (rand() % 1000 - 500); // Random X
         float z = (rand() % 1000 - 500); // Random Z
         float y = terrain->getHeightAt(x, z);    // Get Y from heightmap
-
         mat4 model = translate(mat4(1.0f), vec3(x, y, z));
         model = rotate(model, radians((float)(rand() % 360)), vec3(0, 1, 0)); // Random rotation
         float scaleFactor = 0.1f;
         model = scale(model, vec3(scaleFactor, scaleFactor, scaleFactor));
         instanceMatrices.push_back(model);
     }
-
 }
 
 void initVegetationBuffers(GLuint treeVAO) {
-    generateTreePositions(treeCount);
-    
+    generateTreePositions(desiredTreeCount);
     glGenBuffers(1, &instanceVBO);
     glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-    glBufferData(GL_ARRAY_BUFFER, treeCount * sizeof(mat4), &instanceMatrices[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, desiredTreeCount * sizeof(mat4), &instanceMatrices[0], GL_STATIC_DRAW);
 
     // Bind to the VAO of your tree model
     glBindVertexArray(treeVAO);
@@ -418,11 +408,7 @@ void createContext() {
     useTextureMenuLoc = glGetUniformLocation(staminaShader, "useTexture");
 
 	// Terrain Initialization
-	Heightmap::HillAlgorithmParameters params(400, 400, 100, 10, 40, 0.0f, 1.0f, 1500.0f, 50.0f);
-    // rows, columns, numHills, hillRadiusMin, hillRadiusMax, hillMinHeight, hillMaxHeight, scalar, scalarY
-    terrain = new Heightmap(params);
-
-    modelDiffuseTexture = loadSOIL("models/grass_minecraft.bmp");
+	modelDiffuseTexture = loadSOIL("models/grass_minecraft.bmp");
     snailDiffuseTexture = loadSOIL("models/Tex_Snail.bmp");
 
     // --- Depth Buffer Setup (Unchanged) ---
@@ -449,33 +435,118 @@ void createContext() {
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    // Snail Initialization (Updated to use getHeightAt)
+    initUI();
+
+	//menu init
+    mainMenu = new Menu();
+    mainMenu->init(W_WIDTH, W_HEIGHT);
+    mainMenu->initText("textures/numbers.png");
+
+}
+
+void updateProgressBar(float percent) {
+    // 1. SETUP & CLEAR
+    glDisable(GL_DEPTH_TEST);
+    glUseProgram(staminaShader);
+    glClear(GL_COLOR_BUFFER_BIT); // Necessary to remove artifacts
+
+    // 2. DRAW BACKGROUND (MENU) - Uses Pixel Coordinates (0 to 1024)
+    int page = 0;
+    if (currentState == SETTINGS_STATE) page = 1;
+
+    // This call internally sets the 'projection' uniform to Ortho(0, 1024...)
+    mainMenu->draw(staminaShader, W_WIDTH, W_HEIGHT, page);
+
+    if (currentState == SETTINGS_STATE) {
+        mainMenu->drawNumber(staminaShader, desiredTreeCount, vec2(600, 600), 1.0f);
+        mainMenu->drawNumber(staminaShader, desiredFlowerCount, vec2(600, 500), 1.0f);
+    }
+
+    // 3. SWITCH TO STAMINA BAR MODE - Uses Normalized Coordinates (-1 to 1)
+    // We MUST reset the projection matrix to Identity, or the bar will be invisible!
+    mat4 identity = mat4(1.0f);
+    glUniformMatrix4fv(glGetUniformLocation(staminaShader, "projection"), 1, GL_FALSE, &identity[0][0]);
+
+    // 4. DRAW THE BAR (Using logic similar to drawStaminaBar)
+    quad->bind();
+
+    // Settings for the bar
+    float startX = -1.0f; // Start slightly left of center
+    float startY = -1.0f; // Lower half of screen
+    float totalWidth = 2.0f; // Width (2.0 is full screen)
+    float height = 0.1f;    // Thickness
+
+    // --- Draw Grey Background ---
+    mat4 bgModel = translate(mat4(1.0f), vec3(startX, startY, 0.0f));
+    bgModel = scale(bgModel, vec3(totalWidth, height, 1.0f));
+
+    glUniform1i(useTextureMenuLoc, 0); // Solid Color
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &bgModel[0][0]);
+    glUniform3f(colorLoc, 0.3f, 0.3f, 0.3f); // Dark Grey
+    quad->draw();
+
+    // --- Draw Green Fill ---
+    mat4 fgModel = translate(mat4(1.0f), vec3(startX, startY, 0.0f));
+    fgModel = scale(fgModel, vec3(totalWidth * (percent / 100.0f), height, 1.0f));
+
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &fgModel[0][0]);
+    glUniform3f(colorLoc, 0.0f, 1.0f, 0.0f); // Green
+    quad->draw();
+
+    // 5. UPDATE SCREEN
+    glfwSwapBuffers(window);
+    glfwPollEvents();
+}
+
+void createContext2() {
+    // 0% - Start
+    updateProgressBar(0.0f);
+
+    // Terrain 
+    Heightmap::HillAlgorithmParameters params(400, 400, 100, 10, 40, 0.0f, 5.0f, 1500.0f, 50.0f);
+    terrain = new Heightmap(params);
+
+    // 20% - Terrain Done
+    updateProgressBar(20.0f);
+
+    // Snail Initialization 
     float spawnX = 0.0f;
     float spawnZ = 0.0f;
     float spawnY = terrain->getHeightAt(spawnX, spawnZ);
     vec3 initPos = vec3(spawnX, spawnY + 1.0f, spawnZ);
-    snail = new Snail(initPos, 1.0f, 0.2f);
+    snail = new Snail(initPos, 1.0f, 1.2f);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    //skyboxx
-	initSkybox();
+    // 40% - Snail Done
+    updateProgressBar(40.0f);
 
-    //stamina bar
-    initUI();
-    initTree();
+    // Skybox
+    initSkybox();
 
-	//flowers
-	redFlower = new Flower("models/flowers/redFlower.obj", "models/flowers/redFlower.mtl", terrain,20,5.0f,true);
-	purpulFlower = new Flower("models/flowers/bellFlower.obj", "models/flowers/bellFlower.mtl", terrain, 10, 4.0f, true);
+    // 60% - Skybox Done
+    updateProgressBar(60.0f);
+
+    initTree(); // This might take a moment if the OBJ is large
+
+    // 80% - Geometry Done
+    updateProgressBar(80.0f);
+
+    // Flowers (Loading many OBJs)
+    redFlower = new Flower("models/flowers/redFlower.obj", "models/flowers/redFlower.mtl", terrain, desiredFlowerCount, 5.0f, true);
+    // Optional: Update to 85%
+    updateProgressBar(85.0f);
+
+    purpulFlower = new Flower("models/flowers/bellFlower.obj", "models/flowers/bellFlower.mtl", terrain, 10, 4.0f, true);
     mushroom = new Flower("models/flowers/mushroom.obj", "models/flowers/mushroom.mtl", terrain, 10, 0.3f, true);
+    // Optional: Update to 90%
+    updateProgressBar(90.0f);
+
     mushroom2 = new Flower("models/flowers/mushroom.obj", "models/flowers/mushroom2.mtl", terrain, 10, 0.3f, true);
     pizza = new Flower("models/flowers/pizza.obj", "models/flowers/pizza.bmp", terrain, 1, 1.0f, false);
 
-	//menu init
-    mainMenu = new Menu();
-    mainMenu->init();
-
+    // 100% - Finished!
+    updateProgressBar(100.0f);
 }
 
 void drawTerrain(GLuint program, GLuint modelLocation, GLuint diffuseSampler) {
@@ -611,7 +682,7 @@ void depth_pass() {
 
     glUniform1i(glGetUniformLocation(shadowLoader, "isInstanced"), 1);
     glBindVertexArray(treeVAO);
-    glDrawArraysInstanced(GL_TRIANGLES, 0, treeVertexCount, treeCount);
+    glDrawArraysInstanced(GL_TRIANGLES, 0, treeVertexCount, desiredTreeCount);
 
     drawFlowers(shadowLoader, true);
 
@@ -645,14 +716,13 @@ void lighting_pass(mat4 viewMatrix, mat4 projectionMatrix, float retractFactor) 
     glUseProgram(vegetShader);
     glUniformMatrix4fv(glGetUniformLocation(vegetShader, "P"), 1, GL_FALSE, &projectionMatrix[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(vegetShader, "V"), 1, GL_FALSE, &viewMatrix[0][0]);
-    glDisable(GL_CULL_FACE);
+
+
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, treeTexture);
-
     glBindVertexArray(treeVAO);
-    glDrawArraysInstanced(GL_TRIANGLES, 0, treeVertexCount, treeCount);
+    glDrawArraysInstanced(GL_TRIANGLES, 0, treeVertexCount, desiredTreeCount);
 
-    glEnable(GL_CULL_FACE);
 
     glUseProgram(flowerShading);
     glUniformMatrix4fv(glGetUniformLocation(flowerShading, "P"), 1, GL_FALSE, &projectionMatrix[0][0]);
@@ -663,6 +733,43 @@ void lighting_pass(mat4 viewMatrix, mat4 projectionMatrix, float retractFactor) 
 
 }
 
+void drawSpeedBar(float speed, float maxSpeed) {
+    glDisable(GL_DEPTH_TEST);
+    glUseProgram(staminaShader);
+
+    // 1. Calculate Percentage (Clamp between 0 and 1)
+    // maxSpeed for snail is roughly 20.0f to 30.0f depending on your physics
+    float percentage = glm::clamp(speed / 30.0f, 0.0f, 1.0f);
+
+    // 2. Position: Bottom Right
+    // Translate to bottom-right (-0.95, -0.9) is bottom left, so try (0.5, -0.8)
+    mat4 translateMat = translate(mat4(1.0f), vec3(0.5f, -0.8f, 0.0f));
+
+    // Reuse your 'quad' variable
+    quad->bind();
+
+    // --- DRAW BACKGROUND (Grey) ---
+    // Scale: x=0.4 (width), y=0.05 (height)
+    mat4 bgModel = translateMat * scale(mat4(1.0f), vec3(0.4f, 0.05f, 1.0f));
+
+    glUniform1i(useTextureMenuLoc, 0); // Solid color mode
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &bgModel[0][0]);
+    glUniform3f(colorLoc, 0.2f, 0.2f, 0.2f); // Dark Grey
+    quad->draw();
+
+    // --- DRAW SPEED FILL (Blue) ---
+    // Scale X by percentage
+    mat4 fgModel = translateMat * scale(mat4(1.0f), vec3(0.4f * percentage, 0.05f, 1.0f));
+
+    // Color changes from Blue (slow) to Cyan (fast)
+    vec3 speedColor = vec3(0.0f, 0.5f + (0.5f * percentage), 1.0f);
+
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &fgModel[0][0]);
+    glUniform3f(colorLoc, speedColor.r, speedColor.g, speedColor.b);
+    quad->draw();
+
+    glEnable(GL_DEPTH_TEST);
+}
 
 
 void free() {
@@ -681,7 +788,7 @@ void checkforFlowerCollision() {
     }
 }
 
-// - REPLACE YOUR menuLoop WITH THIS
+
 void menuLoop() {
     double x, y;
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
@@ -693,32 +800,54 @@ void menuLoop() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // FIX 1: Add glfwWindowShouldClose check to stop infinite hangs
-
+    int activePage = 0;
     do {
+        if (currentState == MENU_STATE) activePage = 0;
+        else if (currentState == SETTINGS_STATE) activePage = 1;
 
-        // FIX 2: Clear Screen to prevent "smearing" artifacts
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // Draw Menu
-        mainMenu->draw(staminaShader, W_WIDTH, W_HEIGHT);
+        // 2. Draw the active page
+        mainMenu->draw(staminaShader, W_WIDTH, W_HEIGHT, activePage);
 
-        // Handle Input
-        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-            glfwGetCursorPos(window, &x, &y);
-            int action = mainMenu->checkClick(x, y, W_HEIGHT);
+        // 3. Render Text for counts (if in Settings)
+        if (currentState == SETTINGS_STATE) {
 
-            if (action == 1) {
-                currentState = GAME_STATE; // Start Game
-            }
-            else if (action == 2) {
-                glfwSetWindowShouldClose(window, 1); // Exit App
-            }
+            mainMenu->drawNumber(staminaShader, desiredTreeCount, glm::vec2(600, 600), 1.0f);
+            mainMenu->drawNumber(staminaShader, desiredFlowerCount, glm::vec2(600, 500), 1.0f);
         }
 
-        // FIX 3: CRITICAL! Keep the window alive
-        glfwSwapBuffers(window);
-        glfwPollEvents();
-    } while (currentState == MENU_STATE && glfwWindowShouldClose(window) == 0);
+        // 4. Handle Clicks
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+            double x, y;
+            glfwGetCursorPos(window, &x, &y);
+
+            int action = mainMenu->checkClick(x, y, W_HEIGHT, activePage);
+
+            if (action == 3) { // "Start" clicked on Main Menu
+                currentState = SETTINGS_STATE; // Go to settings
+                glfwWaitEventsTimeout(0.2); // Prevent double click
+            }
+            else if (action == 1) { // "Play" clicked on Settings
+                createContext2();
+                mainLoop(); // Generate world
+                currentState = GAME_STATE; // Start Game
+            }
+            else if (action == 2) glfwSetWindowShouldClose(window, 1); // Exit
+            else if (action == 4) { 
+                desiredTreeCount += 10;
+                glfwWaitEventsTimeout(0.2);
+            } 
+            else if (action == 5) {
+                desiredTreeCount -= 10;
+                glfwWaitEventsTimeout(0.2);
+            }
+
+        }
+            glfwSwapBuffers(window);
+            
+            glfwPollEvents();
+        } while ((currentState == MENU_STATE || currentState == SETTINGS_STATE)  && glfwWindowShouldClose(window) == 0);
 
     // Cleanup before starting game
     glEnable(GL_DEPTH_TEST);
@@ -776,7 +905,7 @@ void mainLoop() {
         if (snail->retractTarget == 0.0f) {
             snail->isRetracted = false;
         }
-        else if (snail->retractCurrent == 1.0f) {
+        else if (snail->retractCurrent > 0.0f) {
             snail->isRetracted = true;
 		}
 
@@ -785,7 +914,7 @@ void mainLoop() {
 
 
         // --- 2. Physics Update (Forcing) ---
-        if (snail->retractCurrent == 100.0f)checkforFlowerCollision();
+        if (snail->retractCurrent > 0.0f)checkforFlowerCollision();
         onTree = handleSnailTreeCollision(snail, instanceMatrices);
         isGrounded = handleSnailTerrainCollision(snail, terrain, onTree);
         vec3 snailForward = snail->q * vec3(0, 0, -1); //-Z is forward
@@ -809,9 +938,9 @@ void mainLoop() {
                     return f;
                 }
 
-                const float muK = 0.35f;
-                const float muS = 0.55f;
-                const float inputForce = 1.2f;
+                const float muK = 0.4f;
+                const float muS = 0.65f;
+                const float inputForce = 200.2f;
                 const float BIAS = 1e-4f;
 
                 vec3 gravity(0.0f, -snail->m * g, 0.0f);
@@ -852,12 +981,12 @@ void mainLoop() {
                     
                     if (length(drive) > BIAS)
                         drive = normalize(drive) * inputForce;
-                    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && snail->abilityUnlocked) totalForce -= 200.0f * gN;
+                    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && snail->abilityUnlocked) totalForce += 300.0f * -gravity;
                     vec3 friction(0.0f);
                     if (length(vT) < 0.05f && length(drive + gT) < muS * N)
                     {
                         // STATIC friction  cancel the desire to move
-                        friction = -(drive + gT);
+                        friction = -(0.5f * drive + gT);
                     }
                     else if (length(vT) > BIAS)
                     {
@@ -882,7 +1011,7 @@ void mainLoop() {
                         totalTorque += torque;
                         
                     }
-                    float groundRollingResistance = 3.5f;
+                    float groundRollingResistance = 5.5f;
                     totalTorque -= snail->w * groundRollingResistance;
                     
                 }
@@ -899,9 +1028,10 @@ void mainLoop() {
             };
 
 
-        snail->isSprinting = false;
-		snail->isMoving = false;
+        
         if (isGrounded && snail->retractCurrent == 0.0f) {
+            snail->isSprinting = false;
+            snail->isMoving = false;
             float turnSpeed = radians(100.0f) * dt; 
             float moveSpeed;
             if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS && snail->stamina > 0){
@@ -909,7 +1039,7 @@ void mainLoop() {
                 snail->isSprinting = true;
             }
             else  moveSpeed = snail->moveSpeed;
-
+            vec3 n;
             if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
                 snail->v -= snailForward * moveSpeed;
                 snail->isMoving = true;
@@ -955,6 +1085,7 @@ void mainLoop() {
             }
 
         }
+        handleBoxSnailCollision(terrain, snail);
 
         // Apply physics step
         snail->update(t, dt);

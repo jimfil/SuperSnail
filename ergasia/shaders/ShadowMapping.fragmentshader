@@ -94,8 +94,8 @@ void phong(float visibility) {
 
     // use texture for materials
     if (useTexture == 1) {
-        _Ks = vec4(texture(specularColorSampler, vertex_UV).rgb, 1.0);
-        _Kd = vec4(texture(diffuseColorSampler, vertex_UV).rgb, 1.0);
+        _Ks = vec4(texture(specularColorSampler, vertex_UV * 30 ).rgb, 1.0);
+        _Kd = vec4(texture(diffuseColorSampler, vertex_UV * 30 ).rgb, 1.0);
         _Ka = vec4(0.05 * _Kd.rgb, _Kd.a);
         _Ns = 10;
     }

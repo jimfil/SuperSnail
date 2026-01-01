@@ -1,6 +1,4 @@
 #include "Collision.h"
-#include "Box.h"
-#include "Sphere.h"
 #include "heightmap.h"
 #include "snail.h"
 #include <glm/gtc/quaternion.hpp>
@@ -8,6 +6,51 @@
 using namespace glm;
 
 const float g = 9.80665f;
+
+
+bool checkForBoxSnailCollision(vec3& pos, const float& r, const float& size, vec3& n) {
+    bool collided = false;
+    vec3 totalNormal(0.0f); 
+
+    if (pos.x - r < -size) {
+        pos.x = -size + r;
+        totalNormal += vec3(1, 0, 0); 
+        collided = true;
+    }
+    else if (pos.x + r > size) {
+        pos.x = size - r;
+        totalNormal += vec3(-1, 0, 0);
+        collided = true;
+    }
+
+    if (pos.z - r < -size) {
+        pos.z = -size + r;
+        totalNormal += vec3(0, 0, 1);
+        collided = true;
+    }
+    else if (pos.z + r > size) {
+        pos.z = size - r;
+        totalNormal += vec3(0, 0, -1);
+        collided = true;
+    }
+
+    if (collided) {
+        n = normalize(totalNormal);
+        return true;
+    }
+
+    return false;
+}
+
+
+void handleBoxSnailCollision(Heightmap* heightmap, Snail* snail) {
+    vec3 n;
+    if (checkForBoxSnailCollision(snail->x, snail->radius, heightmap->scalar/2, n)) {
+        snail->v = snail->v - 2.0f * dot(snail->v, n) * n;
+        snail->P = snail->v * snail->m;
+    }
+}
+
 
 bool handleSnailTerrainCollision(Snail* snail, Heightmap* terrain, bool onTree) {
     if (!snail || !terrain) return false; // Safety check
@@ -29,10 +72,9 @@ bool handleSnailTerrainCollision(Snail* snail, Heightmap* terrain, bool onTree) 
             return true;
         }
 
-        snail->x.y = groundHeight + radius + 0.01f;
 
         targetUp = terrain->getNormalAt(snail->x.x, snail->x.z);
-
+        snail->x.y = (groundHeight + radius + 0.04f);
         targetForward = snail->q * vec3(0, 0, -1);
 
         vec3 newY = targetUp;

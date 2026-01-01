@@ -102,14 +102,6 @@ add_executable(ergasia
   ergasia/sourcefiles/main.cpp
   ergasia/sourcefiles/RigidBody.cpp
   ergasia/sourcefiles/RigidBody.h
-  ergasia/sourcefiles/Cube.cpp
-  ergasia/sourcefiles/Cube.h
-  ergasia/sourcefiles/Sphere.cpp
-  ergasia/sourcefiles/Sphere.h
-  ergasia/sourcefiles/Box.cpp
-  ergasia/sourcefiles/Box.h
-  ergasia/sourcefiles/MassSpringDamper.cpp
-  ergasia/sourcefiles/MassSpringDamper.h
   ergasia/sourcefiles/Collision.cpp
   ergasia/sourcefiles/Collision.h
   ergasia/sourcefiles/heightmap.cpp
@@ -120,6 +112,8 @@ add_executable(ergasia
   ergasia/sourcefiles/Flower.h
   ergasia/sourcefiles/Menu.cpp
   ergasia/sourcefiles/Menu.h
+  ergasia/sourcefiles/Box.cpp
+  ergasia/sourcefiles/Box.h
 
   common/util.cpp
   common/util.h

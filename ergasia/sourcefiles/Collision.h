@@ -2,10 +2,11 @@
 #define COLLISION_H
 
 #include <glm/glm.hpp>
-#include "Snail.h"
 #include "heightmap.h"
-class Box;
-class Sphere;
+class Snail;
+
+void handleBoxSnailCollision(Heightmap* heightmap, Snail* snail);
+bool checkForBoxSnailCollision(glm::vec3& pos, const float& r, const float& size, glm::vec3& n);
 bool handleSnailTerrainCollision(Snail* snail, Heightmap* terrain, bool onTree);
 
 bool handleSnailTreeCollision(Snail* snail, const std::vector<glm::mat4>& treeMatrices);
