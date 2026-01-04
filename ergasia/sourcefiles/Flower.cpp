@@ -5,6 +5,7 @@
 #include <sstream>
 #include <glm/gtc/matrix_transform.hpp>
 #include <common/texture.h>
+#include <glfw3.h>
 
 using namespace std;
 using namespace glm;
@@ -34,11 +35,11 @@ void Flower::loadMTL(const char* path) {
 
 }
 
-void Flower::generatePositions(Heightmap* terrain, int count, float scale) {
+void Flower::generatePositions(Heightmap* terrain, int count, float scale, int mapSize) {
     instanceMatrices.clear();
     for (int i = 0; i < count; i++) {
-        float x = (rand() % 1000 - 500 );
-        float z = (rand() % 1000 - 500 );
+        float x = (rand() % (mapSize * 2) - mapSize );
+        float z = (rand() % (mapSize * 2) - mapSize);
         float y = terrain->getHeightAt(x, z);
 
         mat4 model = translate(mat4(1.0f), vec3(x, y, z));
@@ -48,7 +49,7 @@ void Flower::generatePositions(Heightmap* terrain, int count, float scale) {
     }
 }
 
-Flower::Flower(const char* objPath, const char* mtlPath, Heightmap* terrain, int count, float scale, bool mtl) {
+Flower::Flower(const char* objPath, const char* mtlPath, Heightmap* terrain, int count, float scale, bool mtl,int mapSize) {
     this->instanceCount = count;
 	this->hasTexture = !mtl;
     // 1. Load Color from MTL
@@ -64,7 +65,7 @@ Flower::Flower(const char* objPath, const char* mtlPath, Heightmap* terrain, int
     vertexCount = vertices.size();
 
     // 3. Generate Positions
-    generatePositions(terrain, count, scale);
+    generatePositions(terrain, count, scale, mapSize);
     instanceColors.resize(count, this->color);
 	edible.resize(count, true);
     // 4. Setup OpenGL Buffers
@@ -151,6 +152,8 @@ void Flower::draw(GLuint shaderProgram,bool drawShading) {
         glUniform1i(glGetUniformLocation(shaderProgram, "isInstanced"), 1);
     }
     glBindVertexArray(VAO);
+    float t = glfwGetTime();
+    glUniform1f(glGetUniformLocation(shaderProgram, "time"), t);
     glDrawArraysInstanced(GL_TRIANGLES, 0, vertexCount, instanceCount);
     glBindVertexArray(0);
 }
@@ -202,9 +205,9 @@ bool Flower::checkSnailCollisionNotRetracted(Snail* snail) {
         float distSq = dx * dx + dz * dz;
 
         if (distSq < detectionDist * detectionDist && this->edible[i]) {
-            snail-> v*= 0.5f; // Slow down snail
+            snail-> v*= 0.99f; // Slow down snail
 			snail->P = snail->v * snail->m;
-			snail->w *= 0.5f;
+			snail->w *= 0.99f;
 			snail->L = snail->w * snail->I_inv;
 			return true;
         }

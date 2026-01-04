@@ -11,6 +11,12 @@ struct Button {
     int actionID;
 };
 
+struct Icon {
+    glm::vec2 position;
+    glm::vec2 size;
+    GLuint textureID;
+};
+
 class Menu {
 public:
     Menu();
@@ -26,8 +32,8 @@ public:
     // Helper to add buttons easily
     void addButton(int pageID, glm::vec2 pos, glm::vec2 size, GLuint textureID, int actionID);
     void initText(const char* texturePath);
-    void drawNumber(GLuint shaderID, int number, glm::vec2 pos, float scale);
-
+    void drawNumber(GLuint shaderID, int number, glm::vec2 pos, float scale,int w, int h);
+    void drawIcon(GLuint shaderProgram, GLuint textureID, glm::vec2 pos, glm::vec2 size);
 private:
     GLuint VAO, VBO, uvVBO;
     std::vector<std::vector<Button>> pages;

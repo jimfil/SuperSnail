@@ -97,10 +97,12 @@ bool handleSnailTerrainCollision(Snail* snail, Heightmap* terrain, bool onTree) 
 
     //Since we didnt return, we are retracted!
     
-
     if (snailBottom < groundHeight) {
 		targetUp = terrain->getNormalAt(snail->x.x, snail->x.z);
-        snail->x.y = groundHeight + radius + 0.01f;
+        if (length(snail->v) > 40.0f) {
+            snail->x.y = groundHeight + radius + 0.2f;
+        }
+        snail->x.y = groundHeight + radius + 0.03f;
         return true; 
     }
 
@@ -110,10 +112,10 @@ bool handleSnailTerrainCollision(Snail* snail, Heightmap* terrain, bool onTree) 
 
 bool handleSnailTreeCollision(Snail* snail, const std::vector<mat4>& instanceMatrices) {
     float treeRadius = 0.3f;
-    float combinedRadius = snail->radius + treeRadius;
+    float combinedRadius = snail->radius + treeRadius + 1.0f;
     float detectionDist = combinedRadius + 0.1f;
 
-    float treeHeight = 15.0f;
+    float treeHeight = 20.0f;
 
 
     for (const auto& modelMatrix : instanceMatrices) {

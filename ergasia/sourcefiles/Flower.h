@@ -24,9 +24,8 @@ public:
     bool hasTexture;
     int vertexCount;
     int instanceCount;
-
 	// ObjPath, MtlPath, Terrain, Count, Scale, UseMtl, HasTexture
-    Flower(const char* objPath, const char* mtlPath, Heightmap* terrain, int count, float scale, bool mtl);
+    Flower(const char* objPath, const char* mtlPath, Heightmap* terrain, int count, float scale, bool mtl, int mapSize);
     ~Flower();
 
     void draw(GLuint shaderProgram,bool drawShading);
@@ -34,5 +33,5 @@ public:
     bool checkSnailCollisionNotRetracted(Snail* snail);
 private:
     void loadMTL(const char* path);
-    void generatePositions(Heightmap* terrain, int count, float scale);
+    void generatePositions(Heightmap* terrain, int count, float scale, int mapSize);
 };

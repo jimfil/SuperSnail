@@ -25,6 +25,9 @@
     <ClCompile Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\Box.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\Eagle.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\common\util.cpp">
       <Filter>common</Filter>
     </ClCompile>
@@ -64,6 +67,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\Box.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\Eagle.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\common\util.h">

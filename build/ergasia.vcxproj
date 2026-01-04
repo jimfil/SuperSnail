@@ -395,6 +395,8 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClInclude Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\Menu.h" />
     <ClCompile Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\Box.cpp" />
     <ClInclude Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\Box.h" />
+    <ClCompile Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\Eagle.cpp" />
+    <ClInclude Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\Eagle.h" />
     <ClCompile Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\common\util.cpp" />
     <ClInclude Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\common\util.h" />
     <ClCompile Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\common\shader.cpp" />

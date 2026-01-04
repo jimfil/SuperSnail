@@ -37,28 +37,29 @@ Heightmap::MeshData Heightmap::generate(const HillAlgorithmParameters& params)
     MeshData data;
 
     // --- A. Generate Height Grid ---
-    std::vector<std::vector<float>> grid(params.rows, std::vector<float>(params.columns, 0.0f));
-    std::random_device rd;
-    std::mt19937 generator(rd());
-    std::uniform_int_distribution<int> rDist(params.hillRadiusMin, params.hillRadiusMax);
-    std::uniform_real_distribution<float> hDist(params.hillMinHeight, params.hillMaxHeight);
-    std::uniform_int_distribution<int> rowDist(0, params.rows - 1);
-    std::uniform_int_distribution<int> colDist(0, params.columns - 1);
+	std::vector<std::vector<float>> grid(params.rows, std::vector<float>(params.columns, 0.0f)); // grid to contain the height values
+	std::random_device rd;          // seed for random number generator
+	std::mt19937 generator(rd());   // Mersenne Twister RNG (best psuedorandom generator)
+	std::uniform_int_distribution<int> rDist(params.hillRadiusMin, params.hillRadiusMax); //distribution for hill radius (integer)
+	std::uniform_real_distribution<float> hDist(params.hillMinHeight, params.hillMaxHeight); //distribution for hill height (float)
+    std::uniform_int_distribution<int> rowDist(0, params.rows - 1);     //center of circle must be in grid
+	std::uniform_int_distribution<int> colDist(0, params.columns - 1);  //center of circle must be in grid
 
     for (int i = 0; i < params.numHills; i++) {
-        int cR = rowDist(generator);
-        int cC = colDist(generator);
-        int rad = rDist(generator);
-        float hillH = hDist(generator);
+		int cR = rowDist(generator); // random selection of center row
+		int cC = colDist(generator); // random selection of center column
+		int rad = rDist(generator);  // random selection of radius from the center
+		float hillH = hDist(generator); // random selection of hill height
 
-        for (int r = cR - rad; r < cR + rad; r++) {
-            for (int c = cC - rad; c < cC + rad; c++) {
-                if (r < 0 || r >= params.rows || c < 0 || c >= params.columns) continue;
+        // Iterate over square bounding box
+		for (int r = cR - rad; r < cR + rad; r++) { // for rows inside the radius
+            for (int c = cC - rad; c < cC + rad; c++) { // for columns inside the radius
+                if (r < 0 || r >= params.rows || c < 0 || c >= params.columns) continue; 
 
-                float r2 = float(rad * rad);
+                float r2 = float(rad * rad); 
                 float dx = float(cC - c);
                 float dy = float(cR - r);
-                float hVal = (r2 - dx * dx - dy * dy)/5;
+				float hVal = (r2 - dx * dx - dy * dy) / 5; // pyramid formula /5 to flatten hills a bit
 
                 if (hVal > 0.0f) {
                     grid[r][c] += hillH * (hVal / r2);
@@ -72,11 +73,11 @@ Heightmap::MeshData Heightmap::generate(const HillAlgorithmParameters& params)
     // --- B. Convert to Triangle Soup (Drawable format) ---
     // Resize vectors to fit all triangles
     int numQuads = (params.rows - 1) * (params.columns - 1);
-    data.v.reserve(numQuads * 6);
-    data.uv.reserve(numQuads * 6);
+	data.v.reserve(numQuads * 6); // gia kathe tetragwno 2 trigwna = 6 shmeia
+    data.uv.reserve(numQuads * 6); 
     data.n.reserve(numQuads * 6);
 
-    for (int i = 0; i < params.rows - 1; i++) {
+    for (int i = 0; i < params.rows - 1; i++) { 
         for (int j = 0; j < params.columns - 1; j++) {
 
             // Helper to make a vertex
@@ -124,8 +125,6 @@ glm::mat4 Heightmap::returnplaneMatrix() {
 
 
 float Heightmap::getHeightAt(float worldX, float worldZ) {
-    // 1. Convert World coordinates to Local coordinates
-    // (Relative to the terrain's center and scale)
     float localX = (worldX - position.x) / scalar;
     float localZ = (worldZ - position.z) / scalar;
 

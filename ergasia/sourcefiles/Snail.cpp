@@ -9,6 +9,7 @@ Snail::Snail(
     vec3 pos, float scalar, float mass){
     mesh = new Drawable("models/Mesh_Snail.obj");
     mesh_retracted = new Drawable("models/Mesh_Snail_Retracted.obj");
+	isMoving = false;
     isSprinting = false;
     isRetracted = false;
 	abilityUnlocked = false;
@@ -31,10 +32,11 @@ Snail::Snail(
 
 Snail::~Snail() {
     delete mesh;
+    delete mesh_retracted;
 }
 
 void Snail::draw() {
-    if (isRetracted) {
+    if (retractCurrent == 1.0f) {
         mesh_retracted->bind();
         mesh_retracted->draw();
     }
@@ -54,14 +56,12 @@ void Snail::update(float t, float dt) {
         this->L = vec3(0, 0, 0);
     }
     if (this->isSprinting && this->isMoving) {
-        float staminaChange = -staminaDepletionRate * dt;
-        stamina = glm::clamp(stamina + staminaChange, 0.0f, staminaMax);
-        //std::cout << "DEPLETING: " << stamina << std::endl;
+        float staminaChange = staminaDepletionRate * dt;
+        stamina = clamp(stamina - staminaChange, 0.0f, staminaMax);
     }
     else {
         float staminaChange = staminaRepletionRate * dt;
-        stamina = glm::clamp(stamina + staminaChange, 0.0f, staminaMax);
-        //std::cout << "REFILLING: " << stamina << std::endl;
+        stamina = clamp(stamina + staminaChange, 0.0f, staminaMax);
 	}
     // compute model matrix
     mat4 scale = glm::scale(mat4(), vec3(s, s, s));

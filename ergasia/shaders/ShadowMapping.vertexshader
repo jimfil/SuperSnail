@@ -40,7 +40,7 @@ void main() {
     vertex_normal_cameraspace = V * M * vec4(vertexNormal_modelspace, 0);
     light_position_cameraspace = V * vec4(light.lightPosition_worldspace, 1);
     //light_position_cameraspace2 = V * vec4(light2.lightPosition_worldspace, 1);
-    vertex_UV = vertexUV;
+    vertex_UV = 40 * vertexUV;
 
     // Task 4.2
     vertex_position_lightspace = lightVP * M * vec4(vertexPosition_modelspace, 1);
