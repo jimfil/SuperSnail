@@ -29,8 +29,7 @@ public:
     ~Flower();
 
     void draw(GLuint shaderProgram,bool drawShading);
-    bool checkSnailCollision(Snail* snail);
-    bool checkSnailCollisionNotRetracted(Snail* snail);
+    bool checkCollisionByIndex(int index, Snail* snail, bool isRetracted);
 private:
     void loadMTL(const char* path);
     void generatePositions(Heightmap* terrain, int count, float scale, int mapSize);

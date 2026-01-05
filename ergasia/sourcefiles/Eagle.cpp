@@ -127,7 +127,7 @@ void Eagle::draw(GLuint shaderProgram, GLuint modelLocation, GLuint colorLocatio
     model->bind();
     mat4 modelMat = mat4(1.0f);
     modelMat = translate(modelMat, position);
-    modelMat = rotate(modelMat, rotationY, vec3(-1, 0, -1));
+    modelMat = rotate(modelMat, rotationY, vec3(0, 1, 0));
     modelMat = scale(modelMat, vec3(0.1f));
 
     glUniformMatrix4fv(modelLocation, 1, GL_FALSE, &modelMat[0][0]);

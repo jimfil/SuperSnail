@@ -22,9 +22,6 @@
     <ClCompile Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\Menu.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\Box.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\Eagle.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -66,10 +63,10 @@
     <ClInclude Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\Menu.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\Box.h">
+    <ClInclude Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\Eagle.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\Eagle.h">
+    <ClInclude Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\ergasia\sourcefiles\Tree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="C:\Users\dimit\Documents\Uni\7o\Grafika\Ergasia\Part 2\project\common\util.h">

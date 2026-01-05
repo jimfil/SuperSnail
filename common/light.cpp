@@ -18,15 +18,14 @@ Light::Light(GLFWwindow* window,
 
     // setting near and far plane affects the detail of the shadow
     nearPlane = 1.0;
-    farPlane = 200.0;
+    farPlane = 300.0;
 
     direction = normalize(targetPosition - lightPosition_worldspace);
 
     lightSpeed = 0.1f;
     targetPosition = glm::vec3(0.0, 0.0, -5.0);
 
-    // Increase these values (e.g., from 50 to 150) to make the "shadow box" bigger
-    float size = 200.0f;
+    float size = 300.0f;
     projectionMatrix = glm::ortho(-size, size, -size, size, nearPlane, farPlane);
 }
 
@@ -34,7 +33,7 @@ Light::Light(GLFWwindow* window,
 void Light::update(vec3 centerPosition) {
 
     targetPosition = centerPosition;
-    vec3 sunOffset = vec3(0, 60.0f, 0);
+    vec3 sunOffset = vec3(0, 140.0f, 0);
     lightPosition_worldspace = targetPosition + sunOffset;
 
     direction = normalize(targetPosition - lightPosition_worldspace);

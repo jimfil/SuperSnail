@@ -16,13 +16,20 @@ public:
     glm::vec3 position; 
 
     std::vector<std::vector<float>> heightGrid;
+    std::vector<std::vector<float>> typeGrid;
+
+    GLuint splatTextureID;
+
     int rows, cols;
 
     // Public Constructor
     Heightmap(const HillAlgorithmParameters& params);
+    ~Heightmap();
+
     glm::mat4 returnplaneMatrix();
     float getHeightAt(float worldX, float worldZ);
     glm::vec3 getNormalAt(float worldX, float worldZ);
+    float getGroundTypeAt(float worldX, float worldZ);
 private:
     // Helper struct to hold data temporarily
     struct MeshData {
@@ -31,6 +38,7 @@ private:
         std::vector<glm::vec3> n;
 
         std::vector<std::vector<float>> grid;
+        std::vector<std::vector<float>> typeGrid;
     };
 
     // Private Constructor (The target of delegation)

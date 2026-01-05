@@ -10,7 +10,7 @@ uniform int useTexture;
 void main() {
     if (useTexture == 1) {
         color = texture(myTextureSampler, UV);
-        if(color.a < 0.1) discard; 
+        if(color.a < 0.2) discard; 
     } else {
         
         color = vec4(barColor, 1.0);

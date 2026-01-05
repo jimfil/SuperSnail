@@ -53,7 +53,7 @@ void Camera::update(Snail* snail) {
     // 5. Fixed "Up" vector usually works best for orbit cameras to prevent spinning
     vec3 up = vec3(0, 1, 0);
 
-    projectionMatrix = perspective(radians(FoV), (float)width / (float)height, 0.1f, 173.41f * 2 *snail->radius);
+    projectionMatrix = perspective(radians(FoV), (float)width / (float)height, 0.1f, 140.41f * 2 *snail->radius);
     viewMatrix = lookAt(position, lookTarget, up);
 
     lastTime = currentTime;

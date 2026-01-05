@@ -38,12 +38,22 @@ void Flower::loadMTL(const char* path) {
 void Flower::generatePositions(Heightmap* terrain, int count, float scale, int mapSize) {
     instanceMatrices.clear();
     for (int i = 0; i < count; i++) {
-        float x = (rand() % (mapSize * 2) - mapSize );
+        float x = (rand() % (mapSize * 2) - mapSize);
         float z = (rand() % (mapSize * 2) - mapSize);
         float y = terrain->getHeightAt(x, z);
 
         mat4 model = translate(mat4(1.0f), vec3(x, y, z));
+
+        vec3 normal = normalize(terrain->getNormalAt(x, z)); 
+        vec3 up = vec3(0.0f, 1.0f, 0.0f); 
+
+        if (abs(dot(up, normal)) < 0.999f) {
+            vec3 axis = normalize(cross(up, normal));
+            float angle = acos(dot(up, normal));
+            model = rotate(model, angle, axis);
+        }
         model = rotate(model, radians((float)(rand() % 360)), vec3(0, 1, 0));
+
         model = glm::scale(model, vec3(scale));
         instanceMatrices.push_back(model);
     }
@@ -158,60 +168,47 @@ void Flower::draw(GLuint shaderProgram,bool drawShading) {
     glBindVertexArray(0);
 }
 
+bool Flower::checkCollisionByIndex(int index, Snail* snail, bool isRetracted) {
+    if (index < 0 || index >= instanceMatrices.size()) return false;
 
-
-bool Flower::checkSnailCollision(Snail* snail) {
-
-    float combinedRadius = snail->radius + 0.3f;
+    // 1. Calculate Distance
+    vec3 flowPos = vec3(instanceMatrices[index][3]);
+    float combinedRadius = snail->radius + 0.3f; // Flower radius approx 0.3
     float detectionDist = combinedRadius + 0.1f;
-        for (int i = 0; i < instanceMatrices.size(); i++) {
-            vec3 flow = vec3(instanceMatrices[i][3]); // Get Position
 
-            float dx = snail->x.x - flow.x;
-            float dz = snail->x.z - flow.z;
-            float distSq = dx * dx + dz * dz;
+    float dx = snail->x.x - flowPos.x;
+    float dz = snail->x.z - flowPos.z;
+    float distSq = dx * dx + dz * dz;
 
-            if (distSq < detectionDist * detectionDist && this->edible[i]) {
-                if (!this->hasTexture) {
-                    instanceColors[i] = vec3(this->color.x * 0.1f, this->color.y * 0.1f, this->color.z * 0.1f);
-                    glBindBuffer(GL_ARRAY_BUFFER, colorVBO);
-                    glBufferSubData(GL_ARRAY_BUFFER, i * sizeof(vec3), sizeof(vec3), &instanceColors[i]);
-                    glBindBuffer(GL_ARRAY_BUFFER, 0);
-                }
-                else {
-                    this->color = vec3(0.1f, 0.1f, 0.1f);
-					this->hasTexture = false;
-                    glBindBuffer(GL_ARRAY_BUFFER, colorVBO);
-                    glBufferSubData(GL_ARRAY_BUFFER, i * sizeof(vec3), sizeof(vec3), &instanceColors[i]);
-                    glBindBuffer(GL_ARRAY_BUFFER, 0);
-                }
-                this->edible[i] = false;
-                return true;
-            }
+    if (distSq < detectionDist * detectionDist && this->edible[index]) {
+
+        // 2. Handle Collision
+        if (isRetracted) {
+            // Physics: Slow down (Friction)
+            snail->v *= 0.99f;
+            snail->P = snail->v * snail->m;
+            snail->w *= 0.99f;
+            snail->L = snail->w * snail->I_inv;
+            return true;
         }
+        else {
+            // Gameplay: Eating logic
+            if (!this->hasTexture) {
+                instanceColors[index] = color * 0.1f; // Darken
+            }
+            else {
+                this->color = vec3(0.1f); // Darken texture color
+                this->hasTexture = false;
+            }
 
-    return false;
-}
+            // Upload change to GPU
+            glBindBuffer(GL_ARRAY_BUFFER, colorVBO);
+            glBufferSubData(GL_ARRAY_BUFFER, index * sizeof(vec3), sizeof(vec3), &instanceColors[index]);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-bool Flower::checkSnailCollisionNotRetracted(Snail* snail) {
-
-    float combinedRadius = snail->radius + 0.3f;
-    float detectionDist = combinedRadius + 0.1f;
-    for (int i = 0; i < instanceMatrices.size(); i++) {
-        vec3 flow = vec3(instanceMatrices[i][3]); // Get Position
-
-        float dx = snail->x.x - flow.x;
-        float dz = snail->x.z - flow.z;
-        float distSq = dx * dx + dz * dz;
-
-        if (distSq < detectionDist * detectionDist && this->edible[i]) {
-            snail-> v*= 0.99f; // Slow down snail
-			snail->P = snail->v * snail->m;
-			snail->w *= 0.99f;
-			snail->L = snail->w * snail->I_inv;
-			return true;
+            this->edible[index] = false; // Mark as eaten
+            return true;
         }
     }
-
     return false;
 }

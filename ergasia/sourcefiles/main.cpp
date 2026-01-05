@@ -24,6 +24,18 @@
 #include <stb_image_aug.h>
 #include "Eagle.h"
 #include "Menu.h"
+#include "Tree.h"
+
+#ifdef _WIN32
+#include <windows.h>
+extern "C" {
+    // Για κάρτες NVIDIA
+    _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
+
+    // Για κάρτες AMD
+    _declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
+#endif
 
 using namespace std;
 using namespace glm;
@@ -72,7 +84,7 @@ GLuint snailColorSampler, snailDiffuseColorSampler, snailSpecularColorSampler;
 GLuint shadowViewProjectionLocation;
 GLuint shadowModelLocation;
 
-GLuint modelDiffuseTexture, snailDiffuseTexture;
+GLuint terrainGrassTexture, terrainRockTexture, terrainRubberTexture, snailDiffuseTexture;
 GLuint depthFBO, depthTexture;
 //skybox
 GLuint skyProjectionMatrixLocation, skyViewMatrixLocation;
@@ -84,12 +96,11 @@ GLuint staminaShader;
 GLint modelLoc, colorLoc,useTextureMenuLoc;  
 
 //instanced rendering
-GLuint treeVAO,instanceVBO;
-GLuint treeTexture;
-vector<vec3> treeVertices;
-vector<vec2> treeUVs;
-vector<vec3> treeNormals;
-int treeVertexCount = 0; 
+Tree oakTree;
+Tree pineTree;
+std::vector<glm::mat4> allTreeMatrices;
+//grass
+Tree grassSystem;
 
 //LOULOUDIAAAAAA (me powerups)
 Flower* redFlower,* purpulFlower, * pizza, *mushroom, *mushroom2;
@@ -102,8 +113,8 @@ GLuint flowerIconTex;
 enum GameState {MENU_STATE, GAME_STATE, SETTINGS_STATE};
 GameState currentState;
 Menu* mainMenu;
-int desiredTreeCount = 400;   // Default
-int desiredFlowerCount = 30;
+int desiredTreeCount = 700;   // Default
+int desiredFlowerCount = 100;
 struct Material {
     vec4 Ka; 
     vec4 Kd;
@@ -117,6 +128,17 @@ struct Material {
 Eagle* eagle;
 GLuint eagleIconTex;
 
+//collision detection
+unordered_map<GridKey, vector<int>, GridKeyHash> treeGrid;
+float cellSize = 10.0f;
+
+struct FlowerHandle {
+    Flower* type; 
+    int index;   
+};
+
+unordered_map<GridKey, vector<FlowerHandle>, GridKeyHash> flowerGrid;
+
 Light* light = new Light(window,
     vec4{ 1, 1, 1, 1 },
     vec4{ 1, 1, 1, 1 },
@@ -128,8 +150,6 @@ Heightmap* terrain;
 Snail* snail;
 Drawable* quad;
 
-
-vector<mat4> instanceMatrices;
 
 // Standard acceleration due to gravity
 const float g = 9.80665f;
@@ -250,106 +270,115 @@ void initUI() {
     quad = new Drawable(quadVertices, quadUVs);
 }
 
-void generateTreePositions(int amount) {
+void buildCollisionGrid(const std::vector<mat4>& instanceMatrices) {
+    treeGrid.clear();
+    for (int i = 0; i < instanceMatrices.size(); i++) {
+        vec3 pos = vec3(instanceMatrices[i][3]);
 
+        int gridX = static_cast<int>(floor(pos.x / cellSize));
+        int gridZ = static_cast<int>(floor(pos.z / cellSize));
+
+        treeGrid[{gridX, gridZ}].push_back(i);
+    }
+}
+
+void buildFlowerGrid() {
+    flowerGrid.clear();
+
+    // List of all your flower types
+    vector<Flower*> allFlowers = { redFlower, purpulFlower, mushroom, mushroom2, pizza };
+
+    for (Flower* flower : allFlowers) {
+        for (int i = 0; i < flower->instanceMatrices.size(); i++) {
+            vec3 pos = vec3(flower->instanceMatrices[i][3]);
+
+            int gridX = static_cast<int>(floor(pos.x / cellSize));
+            int gridZ = static_cast<int>(floor(pos.z / cellSize));
+
+            // Store the pointer and the index
+            flowerGrid[{gridX, gridZ}].push_back({ flower, i });
+        }
+    }
+}
+
+vector<mat4> generateGrassPositions(int amount) {
+    vector<mat4> matrices;
+    int attempts = 0;
+
+    while (matrices.size() < amount && attempts < amount * 2) {
+        attempts++;
+
+        // Random Position
+        float x = (rand() % (MAP_SIZE * 2) - MAP_SIZE);
+        float z = (rand() % (MAP_SIZE * 2) - MAP_SIZE);
+        float y = terrain->getHeightAt(x, z);
+
+        
+        // 2. Check Ground Type (0=Grass, 1=Rock)
+        // Only spawn if it's mostly grass (value < 0.5)
+        float type = terrain->getGroundTypeAt(x, z);
+        if (abs(type) > 0.2f ) continue; 
+
+        // 3. Randomize Rotation and Scale
+        mat4 model = translate(mat4(1.0f), vec3(x, y, z));
+
+        vec3 normal = normalize(terrain->getNormalAt(x, z));
+        vec3 up = vec3(0.0f, 1.0f, 0.0f);
+
+        if (abs(dot(up, normal)) < 0.999f) { // Avoid glitches on perfectly flat ground
+            vec3 axis = normalize(cross(up, normal));
+            float angle = acos(dot(up, normal));
+            model = rotate(model, angle, axis);
+        }
+        model = rotate(model, radians((float)(rand() % 360)), vec3(0, 1, 0));
+
+        // Random size variation (0.8 to 1.5)
+        float scaleVal = 30.0f;
+        model = scale(model, vec3(scaleVal, scaleVal/2, scaleVal));
+
+        matrices.push_back(model);
+    }
+    return matrices;
+}
+
+vector<mat4> generateTreePositions(int amount,float scalar) {
+	vector<mat4> instanceMatrices;
     for (int i = 0; i < amount; i++) {
         float x = (rand() % (MAP_SIZE * 2) - MAP_SIZE); // Random X
         float z = (rand() % (MAP_SIZE * 2) - MAP_SIZE); // Random Z
         float y = terrain->getHeightAt(x, z);    // Get Y from heightmap
         mat4 model = translate(mat4(1.0f), vec3(x, y, z));
         model = rotate(model, radians((float)(rand() % 360)), vec3(0, 1, 0)); // Random rotation
-        float scaleFactor = 0.1f;
-        model = scale(model, vec3(scaleFactor, scaleFactor, scaleFactor));
+        model = scale(model, vec3(scalar, scalar, scalar));
         instanceMatrices.push_back(model);
     }
-}
-
-void initVegetationBuffers(GLuint treeVAO) {
-    generateTreePositions(desiredTreeCount);
-    glGenBuffers(1, &instanceVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-    glBufferData(GL_ARRAY_BUFFER, desiredTreeCount * sizeof(mat4), &instanceMatrices[0], GL_STATIC_DRAW);
-
-    // Bind to the VAO of your tree model
-    glBindVertexArray(treeVAO);
-
-    // A mat4 is 4 vec4s, so it takes 4 attribute slots (locations 3, 4, 5, 6)
-    for (int i = 0; i < 4; i++) {
-        glEnableVertexAttribArray(3 + i);
-        glVertexAttribPointer(3 + i, 4, GL_FLOAT, GL_FALSE, sizeof(mat4), (void*)(i * sizeof(vec4)));
-        // Tell OpenGL this attribute changes per instance, not per vertex
-        glVertexAttribDivisor(3 + i, 1);
-    }
-    glBindVertexArray(0);
+	return instanceMatrices;
 }
 
 void initTree() {
-	GLuint vertexVBO, uvVBO, normalVBO;
-    // 1. Load the Model
-    // Ensure you use the try-catch block if your loader throws exceptions
-    try {
-        loadOBJWithTiny("models/tree.obj", treeVertices, treeUVs, treeNormals);
-    }
-    catch (...) {
-        std::cout << "Failed to load tree.obj" << std::endl;
-        return;
-    }
+    allTreeMatrices.clear(); // Clear start
 
-    if (treeVertices.empty()) {
-        std::cout << "Tree model has no vertices!" << std::endl;
-        return;
-    }
+    // --- 1. Setup OAK Trees ---
+    oakTree.init("models/tree.obj", "models/tree2.bmp");
+    vector<mat4> oakPos = generateTreePositions(desiredTreeCount/2,4.0f);
+    oakTree.setupInstances(oakPos); // Send to GPU for rendering
 
-    treeVertexCount = treeVertices.size();
+    // Add to Master Collision List
+    allTreeMatrices.insert(allTreeMatrices.end(), oakPos.begin(), oakPos.end());
 
-    // 2. Load the Texture
-    treeTexture = loadSOIL("models/tree.bmp");
 
-    // 3. Setup the VAO
-    glGenVertexArrays(1, &treeVAO);
-    glBindVertexArray(treeVAO);
+    // --- 2. Setup PINE Trees ---
+    pineTree.init("models/tree2.obj", "models/tree2.bmp");
+    vector<mat4> pinePos = generateTreePositions(desiredTreeCount/2,0.05f);
+    pineTree.setupInstances(pinePos); // Send to GPU for rendering
 
-    // --- Vertices (Attribute 0) ---
-    // Safe check: We know vertices exist because of the check above, but good practice.
-    glGenBuffers(1, &vertexVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexVBO);
-    glBufferData(GL_ARRAY_BUFFER, treeVertices.size() * sizeof(vec3), &treeVertices[0], GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    // Add to Master Collision List (Append after Oaks)
+    allTreeMatrices.insert(allTreeMatrices.end(), pinePos.begin(), pinePos.end());
+    grassSystem.init("models/grass2.obj","textures/grass3.bmp");
+    vector<mat4> grassPos = generateGrassPositions(500);
+    grassSystem.setupInstances(grassPos);
 
-    // --- UVs (Attribute 1) ---
-    // FIX IS HERE: Only create UV buffer if UVs actually exist
-    if (!treeUVs.empty()) {
-        glGenBuffers(1, &uvVBO);
-        glBindBuffer(GL_ARRAY_BUFFER, uvVBO);
-        glBufferData(GL_ARRAY_BUFFER, treeUVs.size() * sizeof(vec2), &treeUVs[0], GL_STATIC_DRAW);
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
-    }
-    else {
-        std::cout << "Warning: tree.obj has no UVs. Texture will not work." << std::endl;
-    }
-
-    // --- Normals (Attribute 2) ---
-    // FIX IS HERE: Only create Normal buffer if Normals actually exist
-    if (treeNormals.empty()) {
-        std::cout << "Generating dummy normals for trees..." << std::endl;
-        for (size_t i = 0; i < treeVertices.size(); i++) {
-            // Point straight up (0,1,0) so they catch the sunlight
-            treeNormals.push_back(glm::vec3(0.0f, 1.0f, 0.0f));
-        }
-    }
-    glGenBuffers(1, &normalVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, normalVBO);
-    glBufferData(GL_ARRAY_BUFFER, treeNormals.size() * sizeof(vec3), &treeNormals[0], GL_STATIC_DRAW);
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-    // 4. Setup Instances
-    // Pass the VAO to link the instance buffer
-    initVegetationBuffers(treeVAO);
-
-    // Unbind
-    glBindVertexArray(0);
+    buildCollisionGrid(allTreeMatrices);
 }
 
 void createContext() {
@@ -416,7 +445,9 @@ void createContext() {
     useTextureMenuLoc = glGetUniformLocation(staminaShader, "useTexture");
 
 	// Terrain Initialization
-	modelDiffuseTexture = loadSOIL("models/grass_minecraft.bmp");
+	terrainGrassTexture = loadSOIL("textures/grass3.bmp");
+    terrainRockTexture = loadSOIL("textures/rockyGrass2.bmp");
+    terrainRubberTexture = loadSOIL("textures/rubber.bmp");
     snailDiffuseTexture = loadSOIL("models/Tex_Snail.bmp");
 
     // --- Depth Buffer Setup (Unchanged) ---
@@ -515,7 +546,7 @@ void createContext2() {
 
     // Terrain 
 	//rows, columns, numHills, minRadius, maxRadius, minHeight, maxHeight, scalar, scalarY
-    Heightmap::HillAlgorithmParameters params(400, 400, 100, 10, 40, 0.0f, 5.0f, MAP_SIZE * 2, 50.0f);
+    Heightmap::HillAlgorithmParameters params(400, 400, 100, 10, 40, -2.0f, 5.0f, MAP_SIZE * 2, MAP_SIZE/ 10);
     terrain = new Heightmap(params);
 
     // 20% - Terrain Done
@@ -540,6 +571,7 @@ void createContext2() {
     updateProgressBar(60.0f);
 
     initTree(); // This might take a moment if the OBJ is large
+    //initLowPolyTree();
 
     // 80% - Geometry Done
     updateProgressBar(80.0f);
@@ -555,9 +587,11 @@ void createContext2() {
     updateProgressBar(90.0f);
 
     mushroom2 = new Flower("models/flowers/mushroom.obj", "models/flowers/mushroom2.mtl", terrain, desiredFlowerCount/2, 0.3f, true, MAP_SIZE);
-    pizza = new Flower("models/flowers/pizza.obj", "models/flowers/pizza.bmp", terrain, 1, 1.0f, false, MAP_SIZE);
+    pizza = new Flower("models/flowers/pizza.obj", "models/flowers/pizza.bmp", terrain, 1, 1.0f, false, 40);
 
-    eagle = new Eagle(vec3(200, 300, 200));
+    buildFlowerGrid();
+
+    eagle = new Eagle(vec3(0, 300, 0));
     // 100% - Finished!
     updateProgressBar(100.0f);
 }
@@ -571,9 +605,25 @@ void drawTerrain(GLuint program, GLuint modelLocation, GLuint diffuseSampler) {
     mat4 modelMatrix = terrain->returnplaneMatrix();
     glUniformMatrix4fv(modelLocation, 1, GL_FALSE, &modelMatrix[0][0]);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, modelDiffuseTexture);
+    glBindTexture(GL_TEXTURE_2D, terrainGrassTexture);
     glUniform1i(diffuseSampler, 0);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, terrainRockTexture);
+    glUniform1i(glGetUniformLocation(program, "detailSampler"), 1);
     glUniform1i(useTextureLocation, 1); // Tell terrain shader to use texture
+
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, terrain->splatTextureID);
+    glUniform1i(glGetUniformLocation(program, "splatMapSampler"), 3);
+
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, terrainRubberTexture);
+    glUniform1i(glGetUniformLocation(program, "bouncySampler"), 4);
+
+    glUniform1i(useTextureLocation, 1);
+    terrain->bind();
+    terrain->draw();
 
     terrain->bind();
     terrain->draw();
@@ -689,9 +739,9 @@ void depth_pass() {
     snail->draw();
 
     glUniform1i(glGetUniformLocation(shadowLoader, "isInstanced"), 1);
-    glBindVertexArray(treeVAO);
-    glDrawArraysInstanced(GL_TRIANGLES, 0, treeVertexCount, desiredTreeCount);
-
+    oakTree.draw(shadowLoader);
+    pineTree.draw(shadowLoader);
+    grassSystem.draw(shadowLoader);
     drawFlowers(shadowLoader, true);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -726,17 +776,19 @@ void lighting_pass(mat4 viewMatrix, mat4 projectionMatrix, float retractFactor,f
     float snailSpeed = length(snail->v);
     drawSnail(snailShaderProgram, snailModelMatrixLocation, (float)glfwGetTime(), snailSpeed, retractFactor);
     
+    //updateLODTrees(snail,camera->position);
+
     glUseProgram(vegetShader);
     glUniformMatrix4fv(glGetUniformLocation(vegetShader, "P"), 1, GL_FALSE, &projectionMatrix[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(vegetShader, "V"), 1, GL_FALSE, &viewMatrix[0][0]);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, treeTexture);
-    glBindVertexArray(treeVAO);
     glUniform1f(glGetUniformLocation(vegetShader, "time"), t);
-    glDrawArraysInstanced(GL_TRIANGLES, 0, treeVertexCount, desiredTreeCount);
 
+    oakTree.draw(vegetShader);
+    pineTree.draw(vegetShader);
 
+	glDisable(GL_CULL_FACE); 
+    grassSystem.draw(vegetShader);
+    glEnable(GL_CULL_FACE);
     glUseProgram(flowerShading);
     glUniformMatrix4fv(glGetUniformLocation(flowerShading, "P"), 1, GL_FALSE, &projectionMatrix[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(flowerShading, "V"), 1, GL_FALSE, &viewMatrix[0][0]);
@@ -786,11 +838,51 @@ void free() {
     glfwTerminate();
 }
 
-void checkforFlowerCollision() {
-    vector<Flower*> flowers = { redFlower, purpulFlower, mushroom, mushroom2, pizza };
-    for (Flower* flower : flowers) {
-		flower->checkSnailCollisionNotRetracted(snail);
-       
+void tryEatFlowers() {
+    int snailGridX = static_cast<int>(floor(snail->x.x / cellSize));
+    int snailGridZ = static_cast<int>(floor(snail->x.z / cellSize));
+
+    // Check 3x3 area
+    for (int x = -1; x <= 1; x++) {
+        for (int z = -1; z <= 1; z++) {
+            GridKey key = { snailGridX + x, snailGridZ + z };
+
+            if (flowerGrid.count(key)) {
+                for (const auto& handle : flowerGrid[key]) {
+                    // Pass 'false' for isRetracted to trigger Eating Logic
+                    bool ate = handle.type->checkCollisionByIndex(handle.index, snail, false);
+
+                    if (ate) {
+                        if (handle.type == redFlower) { snail->maxSpeed += 10.0f; snail->moveSpeed += 2.0f; }
+                        else if (handle.type == purpulFlower) { snail->staminaMax += 100.0f; snail->staminaDepletionRate -= 10.0f; }
+                        else if (handle.type == mushroom) {
+                            if (snail->s <40.0f) { snail->s *= 2; snail->radius *= 2; snail->m *= 2; }
+                        }
+                        else if (handle.type == mushroom2) { snail->s /= 2; snail->radius /= 2; snail->m /= 2; }
+                        else if (handle.type == pizza) { snail->abilityUnlocked = true; }
+                        return; 
+                    }
+                }
+            }
+        }
+    }
+}
+
+void applyFlowerPhysics() {
+    int snailGridX = static_cast<int>(floor(snail->x.x / cellSize));
+    int snailGridZ = static_cast<int>(floor(snail->x.z / cellSize));
+
+    for (int x = -1; x <= 1; x++) {
+        for (int z = -1; z <= 1; z++) {
+            GridKey key = { snailGridX + x, snailGridZ + z };
+
+            if (flowerGrid.count(key)) {
+                for (const auto& handle : flowerGrid[key]) {
+                    // Pass 'true' for isRetracted to trigger Physics Logic
+                    handle.type->checkCollisionByIndex(handle.index, snail, true);
+                }
+            }
+        }
     }
 }
 
@@ -863,7 +955,7 @@ void menuLoop() {
             glfwSwapBuffers(window);
             
             glfwPollEvents();
-        } while ((currentState == MENU_STATE || currentState == SETTINGS_STATE)  && glfwWindowShouldClose(window) == 0);
+        } while ((currentState == MENU_STATE || currentState == SETTINGS_STATE)  && glfwWindowShouldClose(window) == 0 && glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS);
     free();
     // Cleanup before starting game
     glEnable(GL_DEPTH_TEST);
@@ -927,14 +1019,30 @@ void mainLoop() {
             snail->isRetracted = true;
 		}
 
-
-        
-
-
         // --- 2. Physics Update (Forcing) ---
-        if (snail->retractCurrent > 0.0f)checkforFlowerCollision();
-        onTree = handleSnailTreeCollision(snail, instanceMatrices);
+        if (snail->retractCurrent > 0.0f)applyFlowerPhysics();
+        onTree = handleSnailTreeCollision(snail, allTreeMatrices);
         isGrounded = handleSnailTerrainCollision(snail, terrain, onTree);
+        if (isGrounded) {
+            // 1. Get the ground normal
+            vec3 n = normalize(terrain->getNormalAt(snail->x.x, snail->x.z));
+
+            float impactSpeed = dot(snail->v, n);
+            float groundType = terrain->getGroundTypeAt(snail->x.x, snail->x.z);
+
+            // 2. Determine Bounciness
+            float bounciness = 0.0f; 
+
+            if (groundType < -0.5f) {
+                bounciness = 0.7f; 
+            }
+
+            if (impactSpeed < 0.0f)
+                snail->v -= impactSpeed * n * (1.0f + bounciness);
+
+            snail->P = snail->m * snail->v;
+
+        }
         vec3 snailForward = snail->q * vec3(0, 0, -1); //-Z is forward
         vec3 snailRight = snail->q * vec3(1, 0, 0);
 
@@ -942,7 +1050,7 @@ void mainLoop() {
             {
                 vector<float> f(6, 0.0f);
                 if (!snail->isRetracted) {
-                    float stopDamping = 10.0f; // Very strong braking
+                    float stopDamping = 7.0f; // Very strong braking
 
                     // Linear Braking
                     f[0] = -snail->v.x * stopDamping * snail->m;
@@ -957,19 +1065,23 @@ void mainLoop() {
                     return f;
                 }
 
-                const float muK = 0.4f;
-                const float muS = 0.65f;
-                const float inputForce = 200.2f;
-                const float BIAS = 1e-4f;
-
+                
                 vec3 gravity(0.0f, -snail->m * g, 0.0f);
-                vec3 totalForce;
+                vec3 totalForce(0.0f);
                 if (!(eagle->state == GRABBING))
-                totalForce = gravity;
+                    totalForce = gravity;
                 vec3 totalTorque(0.0f);
 
                 if (isGrounded)
                 {
+                    const float inputForce = 800.0f; 
+                    const float BIAS = 1e-4f;
+
+                    float groundType = abs(terrain->getGroundTypeAt(snail->x.x, snail->x.z)) + 0.2f;
+
+                    float muK = 2.0f * groundType;
+                    float muS = 5.0f * groundType;
+
                     vec3 n = normalize(terrain->getNormalAt(snail->x.x, snail->x.z));
                     vec3 up(0, 1, 0);
 
@@ -1002,7 +1114,7 @@ void mainLoop() {
                     
                     if (length(drive) > BIAS)
                         drive = normalize(drive) * inputForce;
-                    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && snail->abilityUnlocked) totalForce += 300.0f * -gravity;
+                    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && snail->abilityUnlocked) totalForce += 50.0f * -gravity;
                     vec3 friction(0.0f);
                     if (length(vT) < 0.05f && length(drive + gT) < muS * N)
                     {
@@ -1020,19 +1132,20 @@ void mainLoop() {
                     float maxT = muK * N;
                     if (length(tangentForce) > maxT && length(vT) > 0.1f)
                         tangentForce = normalize(tangentForce) * maxT;
+
                     totalForce += tangentForce;
                     float speed = length(vT);
 
                     if (speed > 0.01f) {
                         vec3 rollAxis = normalize(cross(n, vT));
-                        //Torque based on speed (v = w * r  ->  w = v / r)
                         float radius = snail->radius;
                         vec3 idealOmega = rollAxis * (speed / radius);
                         vec3 torque = (idealOmega - snail->w) * 10.0f;
                         totalTorque += torque;
                         
                     }
-                    float groundRollingResistance = 5.5f;
+
+                    float groundRollingResistance = mix(5.5f, 2.5f, groundType);
                     totalTorque -= snail->w * groundRollingResistance;
                     
                 }
@@ -1082,32 +1195,7 @@ void mainLoop() {
 
             //eating events
             if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
-                if (redFlower->checkSnailCollision(snail)) {
-					snail->maxSpeed += 10.0f;
-					snail->moveSpeed += 2.0f;
-                
-                }
-                if (purpulFlower->checkSnailCollision(snail)) {
-					snail->staminaMax += 100.0f;
-					snail->staminaRepletionRate += 10.0f;
-                    snail->staminaDepletionRate -= 10.0f;
-                }
-
-                if (mushroom->checkSnailCollision(snail)) {
-                    snail->s *= 2;
-                    snail->radius *= 2;
-					snail->m *= 2;
-				}
-
-                if (mushroom2->checkSnailCollision(snail)) {
-                    snail->s /= 2;
-                    snail->radius /= 2;
-                    snail->m /= 2;
-                }
-
-                if (pizza->checkSnailCollision(snail)) {
-					snail->abilityUnlocked = true;
-				}
+                tryEatFlowers();
             }
 
         }
@@ -1125,7 +1213,7 @@ void mainLoop() {
         //Render Skybox last
         drawSkybox(viewMatrix, projectionMatrix);
         drawStaminaBar(snail->stamina,snail->staminaMax);
-        drawSpeedBar(length(snail->v), 200.0f);
+        drawSpeedBar(length(vec3(snail->v.x,0, snail->v.z )), 200.0f);
         t += dt;
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -1149,7 +1237,9 @@ void initialize() {
 
     // Open a window and create its OpenGL context
     window = glfwCreateWindow(W_WIDTH, W_HEIGHT, TITLE, NULL, NULL);
-
+    /*const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+    window = glfwCreateWindow(mode->width, mode->height, TITLE, glfwGetPrimaryMonitor(), NULL);
+    */
     if (window == NULL) {
         glfwTerminate();
         throw runtime_error(string(string("Failed to open GLFW window.") +

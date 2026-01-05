@@ -112,11 +112,9 @@ add_executable(ergasia
   ergasia/sourcefiles/Flower.h
   ergasia/sourcefiles/Menu.cpp
   ergasia/sourcefiles/Menu.h
-  ergasia/sourcefiles/Box.cpp
-  ergasia/sourcefiles/Box.h
   ergasia/sourcefiles/Eagle.cpp
   ergasia/sourcefiles/Eagle.h
-
+  ergasia/sourcefiles/Tree.h
 
   common/util.cpp
   common/util.h

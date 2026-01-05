@@ -8,9 +8,11 @@ in vec4 vertex_position_lightspace;
 
 uniform sampler2D shadowMapSampler;
 uniform sampler2D diffuseColorSampler;
+uniform sampler2D detailSampler;
 uniform sampler2D specularColorSampler;
 uniform sampler2D snailColorSampler;
-
+uniform sampler2D splatMapSampler;
+uniform sampler2D bouncySampler;
 uniform int useTexture = 1;
 
 
@@ -40,7 +42,30 @@ void phong(float visibility);
 float ShadowCalculation(vec4 fragPositionLightspace,sampler2D shadowMap, vec4 normal, vec4 lightDir);
 
 
+vec3 hash3( vec2 p ) {
+    vec3 q = vec3( dot(p,vec2(127.1,311.7)), 
+                   dot(p,vec2(269.5,183.3)), 
+                   dot(p,vec2(419.2,371.9)) );
+    return fract(sin(q)*43758.5453);
+}
 
+float valueNoise(vec2 uv) {
+    vec2 i = floor(uv);
+    vec2 f = fract(uv);
+    // Smooth interpolation curve
+    f = f * f * (3.0 - 2.0 * f);
+
+    // Reuse your existing hash3 function
+    float a = hash3(i).x;
+    float b = hash3(i + vec2(1.0, 0.0)).x;
+    float c = hash3(i + vec2(0.0, 1.0)).x;
+    float d = hash3(i + vec2(1.0, 1.0)).x;
+
+    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+vec4 textureNoTile(sampler2D samp, in vec2 uv) {
+    return texture(samp, uv); // Simple, standard mapping. No glitches.
+}
 void main() {   
     
     // Task 4.3
@@ -95,9 +120,30 @@ void phong(float visibility) {
     // use texture for materials
     if (useTexture == 1) {
         _Ks = vec4(texture(specularColorSampler, vertex_UV).rgb, 1.0);
-        _Kd = vec4(texture(diffuseColorSampler, vertex_UV).rgb, 1.0);
+
+        // 1. Sample textures
+        vec2 tiledUV = vertex_UV * 20.0;
+        vec4 grassColor = textureNoTile(diffuseColorSampler, tiledUV);
+        vec4 rockColor  = textureNoTile(detailSampler, tiledUV);
+
+        vec4 bouncyColor = textureNoTile(bouncySampler, tiledUV); // Texture 3
+
+        // Read the Splat Map (RGB)
+        vec3 splat = texture(splatMapSampler, vertex_UV).rgb;
+    
+        // splat.r = Rock Amount
+        // splat.g = Bouncy Amount
+
+        // 1. Mix Grass and Rock first
+        float rockFactor = smoothstep(0.4, 0.6, splat.r);
+        vec4 finalColor = mix(grassColor, rockColor, rockFactor);
+
+        // 2. Now Mix the Result with Bouncy based on Green channel
+        float bouncyFactor = smoothstep(0.4, 0.6, splat.g);
+    
+        _Kd = mix(finalColor, bouncyColor, bouncyFactor);
+        
         _Ka = vec4(0.05 * _Kd.rgb, _Kd.a);
-        _Ns = 10;
     }
     
     // model ambient intensity (Ia)
@@ -116,11 +162,7 @@ void phong(float visibility) {
     float specular_factor = pow(cosAlpha, _Ns);
     vec4 Is = (light.Ls) * _Ks * specular_factor;
 
-    // here we would normally model the light attenuation effect
-    // but since this is a directional light source that is infinitely far away
-    // attenuating the light intensity does not make sense
-
-    // final fragment color
+    
     fragmentColor = vec4(
         Ia + 
         (Id + Is) * visibility);
