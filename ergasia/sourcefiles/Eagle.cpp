@@ -62,7 +62,7 @@ void Eagle::update(float dt, Snail* snail) {
 
     case GRABBING:
         // Fly Upwards Carrying Snail
-        velocity = vec3(0.0f, 20.0f, 0.0f); // Straight Up
+        velocity = vec3(1.0f, 20.0f, -1.0f); // Straight Up
         position += velocity * dt;
 
         // Lock Snail Position to Eagle's claws
@@ -70,13 +70,13 @@ void Eagle::update(float dt, Snail* snail) {
         snail->v = vec3(0); // Kill snail physics velocity
 
         // Drop snail after reaching height
-        if (position.y > 200.0f) {
+        if (position.y > 200.0f || !snail->isRetracted) {
             hasSnail = false;
             state = PATROLLING;
             attackCooldown = 10.0f; // Wait 10 seconds before next attack
 
             // Give snail a small drop velocity so it falls naturally
-            snail->v = vec3(0, -5.0f, 0);
+            snail->v = vec3(-3.0f, -5.0f, 3.0f);
         }
         break;
 

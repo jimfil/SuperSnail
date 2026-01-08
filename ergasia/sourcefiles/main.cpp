@@ -50,6 +50,7 @@ void uploadMaterial(const Material& mtl);
 void uploadLight(const Light& light);
 void uploadSnailMaterial(const Material& mtl);
 void uploadSnailLight(const Light& light);
+void uploadTreeLight(const Light& light);
 
 #define W_WIDTH 1920
 #define W_HEIGHT 1080
@@ -79,6 +80,9 @@ GLuint snailTimeLocation, snailSpeedLocation, snailRetractFactorLocation;
 GLuint snailLaLocation, snailLdLocation, snailLsLocation, snailLightPositionLocation, snailLightPowerLocation;
 GLuint snailKdLocation, snailKsLocation, snailKaLocation, snailNsLocation;
 GLuint snailColorSampler, snailDiffuseColorSampler, snailSpecularColorSampler;
+
+// Trees and flowers
+GLuint treeLaLocation, treeLdLocation, treeLsLocation, treeLightPositionLocation, treeLightPowerLocation, treeDepthMapSampler;
 
 // Shadow Pass Uniforms
 GLuint shadowViewProjectionLocation;
@@ -432,9 +436,15 @@ void createContext() {
     snailLdLocation = glGetUniformLocation(snailShaderProgram, "light.Ld");
     snailLsLocation = glGetUniformLocation(snailShaderProgram, "light.Ls");
     snailLightPositionLocation = glGetUniformLocation(snailShaderProgram, "light.lightPosition_worldspace");
-    snailLightPowerLocation = glGetUniformLocation(snailShaderProgram, "light.power");
 	snailUseTextureLocation = glGetUniformLocation(snailShaderProgram, "useTexture");
-    // --- Shadow Loader Uniforms ---
+    //Trees light location
+    treeLaLocation = glGetUniformLocation(vegetShader,"light.La"); 
+    treeLdLocation = glGetUniformLocation(vegetShader, "light.Ld"); 
+    treeLsLocation = glGetUniformLocation(vegetShader, "light.Ls"); 
+    treeLightPositionLocation = glGetUniformLocation(vegetShader, "light.lightPosition_worldspace");  
+    treeDepthMapSampler = glGetUniformLocation(vegetShader, "shadowMapSampler");
+
+    //Shadow Loader Uniforms 
     shadowViewProjectionLocation = glGetUniformLocation(shadowLoader, "VP");
     shadowModelLocation = glGetUniformLocation(shadowLoader, "M");
 	//skybox uniforms
@@ -782,13 +792,17 @@ void lighting_pass(mat4 viewMatrix, mat4 projectionMatrix, float retractFactor,f
     glUniformMatrix4fv(glGetUniformLocation(vegetShader, "P"), 1, GL_FALSE, &projectionMatrix[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(vegetShader, "V"), 1, GL_FALSE, &viewMatrix[0][0]);
     glUniform1f(glGetUniformLocation(vegetShader, "time"), t);
-
+    glUniformMatrix4fv(glGetUniformLocation(vegetShader, "lightVP"), 1, GL_FALSE, &lightVP[0][0]);
+    uploadTreeLight(*light);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, depthTexture);
+    glUniform1i(treeDepthMapSampler, 2);
     oakTree.draw(vegetShader);
     pineTree.draw(vegetShader);
 
-	glDisable(GL_CULL_FACE); 
     grassSystem.draw(vegetShader);
-    glEnable(GL_CULL_FACE);
+
+
     glUseProgram(flowerShading);
     glUniformMatrix4fv(glGetUniformLocation(flowerShading, "P"), 1, GL_FALSE, &projectionMatrix[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(flowerShading, "V"), 1, GL_FALSE, &viewMatrix[0][0]);
@@ -856,7 +870,7 @@ void tryEatFlowers() {
                         if (handle.type == redFlower) { snail->maxSpeed += 10.0f; snail->moveSpeed += 2.0f; }
                         else if (handle.type == purpulFlower) { snail->staminaMax += 100.0f; snail->staminaDepletionRate -= 10.0f; }
                         else if (handle.type == mushroom) {
-                            if (snail->s <40.0f) { snail->s *= 2; snail->radius *= 2; snail->m *= 2; }
+                            if (snail->s <5.0f) { snail->s *= 2; snail->radius *= 2; snail->m *= 2; }
                         }
                         else if (handle.type == mushroom2) { snail->s /= 2; snail->radius /= 2; snail->m /= 2; }
                         else if (handle.type == pizza) { snail->abilityUnlocked = true; }
@@ -1034,7 +1048,7 @@ void mainLoop() {
             float bounciness = 0.0f; 
 
             if (groundType < -0.5f) {
-                bounciness = 0.7f; 
+                bounciness = 1.2f; 
             }
 
             if (impactSpeed < 0.0f)
@@ -1233,7 +1247,7 @@ void initialize() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // Open a window and create its OpenGL context
     window = glfwCreateWindow(W_WIDTH, W_HEIGHT, TITLE, NULL, NULL);
@@ -1307,6 +1321,14 @@ void uploadSnailLight(const Light& light) {
     glUniform3f(snailLightPositionLocation, light.lightPosition_worldspace.x,
         light.lightPosition_worldspace.y, light.lightPosition_worldspace.z);
     glUniform1f(snailLightPowerLocation, 100.0f);
+}
+
+void uploadTreeLight(const Light& light) {
+    glUniform4f(treeLaLocation, light.La.r, light.La.g, light.La.b, light.La.a);
+    glUniform4f(treeLdLocation, light.Ld.r, light.Ld.g, light.Ld.b, light.Ld.a);
+    glUniform4f(treeLsLocation, light.Ls.r, light.Ls.g, light.Ls.b, light.Ls.a);
+    glUniform3f(treeLightPositionLocation, light.lightPosition_worldspace.x,
+        light.lightPosition_worldspace.y, light.lightPosition_worldspace.z);
 }
 
 int main(void) {

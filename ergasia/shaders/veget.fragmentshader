@@ -1,12 +1,96 @@
 #version 330 core
 out vec4 fragmentColor;
+
+in vec4 vertex_position_cameraspace;
+in vec4 vertex_normal_cameraspace;
+in vec4 light_position_cameraspace;
+in vec4 vertex_position_lightspace;
 in vec2 TexCoords;
+
+
 uniform sampler2D diffuseTexture;
+uniform sampler2D shadowMapSampler;
+
+void phong(float visibility);
+float ShadowCalculation(vec4 fragPositionLightspace,sampler2D shadowMap, vec4 normal, vec4 lightDir);
+
+struct Light {
+    vec4 La;
+    vec4 Ld;
+    vec4 Ls;
+    vec3 lightPosition_worldspace;
+};
+uniform Light light;
+
+
 
 void main() {
-    vec4 texColor = texture(diffuseTexture, TexCoords);
-    if(texColor.a < 0.1)
-        discard; 
-    fragmentColor = texColor;
+    vec4 N = normalize(vertex_normal_cameraspace);
+    vec4 L = normalize(light_position_cameraspace - vertex_position_cameraspace);
+    float visibility = 1.0f;
+    visibility -= ShadowCalculation(vertex_position_lightspace,shadowMapSampler, N, L) * 0.7f;
+
+    phong(visibility);
 }
 
+
+
+
+float ShadowCalculation(vec4 fragPositionLightspace,sampler2D shadowMap, vec4 normal, vec4 lightDir) {
+
+    vec3 projCoords = fragPositionLightspace.xyz / fragPositionLightspace.w;
+
+    projCoords = (projCoords + 1)* 0.5 ; 
+
+    float closestDepth = texture(shadowMap,projCoords.xy).r;
+
+    float currentDepth = projCoords.z;
+    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+    float shadow = 0.0;
+    vec2 depthMap_dimensions = textureSize(shadowMap, 0);
+    vec2 texelSize = 1.0 / depthMap_dimensions;
+    for(int x = -1; x <= 1; x++ ){
+        for(int y = -1; y <= 1; y++ ){
+            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
+            shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+        }
+    }
+    shadow /= 9.0;
+    
+    // Inside ShadowCalculation, before returning shadow
+    if(projCoords.z > 1.0 || projCoords.z < 0.0||projCoords.x > 1.0 || projCoords.x < 0.0 || projCoords.y > 1.0 || projCoords.y < 0.0) shadow = 0.0;
+    
+
+
+    return shadow;
+
+}
+
+
+void phong(float visibility) {
+        
+    vec4 _Kd = texture(diffuseTexture, TexCoords);
+    vec4 _Ka = vec4(0.05 * _Kd.rgb, _Kd.a);
+    
+    
+    // model ambient intensity (Ia)
+    vec4 Ia = (light.La )* _Ka;
+
+    // model diffuse intensity (Id)
+    vec4 N = normalize(vertex_normal_cameraspace); 
+    vec4 L = normalize(light_position_cameraspace - vertex_position_cameraspace);
+    float cosTheta = clamp(dot(N, L), 0, 1);
+    vec4 Id = (light.Ld ) * _Kd * cosTheta;
+
+    // model specular intensity (Is)
+    vec4 R = reflect(-L, N);
+    vec4 E = normalize(vec4(0, 0, 0, 1) - vertex_position_cameraspace);
+    float cosAlpha = clamp(dot(E, R), 0, 1);
+    float specular_factor = pow(cosAlpha, 16.0f);
+    vec4 Is = (light.Ls) * 1.0f * specular_factor;
+
+    
+    fragmentColor = vec4(
+        Ia + 
+        (Id+Is) * visibility);
+}
