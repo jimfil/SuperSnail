@@ -144,7 +144,7 @@ void phong(float visibility) {
         _Kd = mix(finalColor, bouncyColor, bouncyFactor);
         
         _Ka = vec4(0.05 * _Kd.rgb, _Kd.a);
-        _Ns = 16.0;
+        _Ns = 12.0;
     }
     
     // model ambient intensity (Ia)
