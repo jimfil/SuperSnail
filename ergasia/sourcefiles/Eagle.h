@@ -5,9 +5,8 @@
 #include <glm/glm.hpp>
 #include <GL/glew.h>
 #include <string>
-#include <common/model.h> // Make sure this points to where your Drawable class is defined
+#include <common/model.h> 
 
-// Forward declaration to avoid circular dependency
 class Snail;
 
 enum EagleState {
@@ -24,14 +23,12 @@ public:
     float speed;
     float rotationY;
 
-    // REPLACED: Manual buffers with your class
     Drawable* model;
-    // AI State
     EagleState state;
     float patrolTimer;
-    float attackCooldown;     // Time before eagle can attack again
-    float diveSpeed;          // Faster speed when diving
-    glm::vec3 startDivePos;   // Where the dive started (to return to)
+    float attackCooldown;    
+    float diveSpeed;          
+    glm::vec3 startDivePos;   
     bool hasSnail;
     Eagle(glm::vec3 startPos);
     ~Eagle();

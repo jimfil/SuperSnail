@@ -8,7 +8,6 @@
 
 class Snail;
 
-
 struct GridKey {
     int x, z;
     bool operator==(const GridKey& other) const {

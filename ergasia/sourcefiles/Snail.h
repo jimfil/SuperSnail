@@ -11,8 +11,8 @@ public:
     float s;
     glm::mat4 snailModelMatrix;
 	bool isRetracted, isSprinting, isMoving, abilityUnlocked;
-    float retractTarget , retractCurrent; // Target for retracting (1.0 = fully retracted), Current animation progress (0.0 to 1.0)
-    const float retractSpeed = 2.0f ; // Speed of retract/extend animation per second
+    float retractTarget , retractCurrent; 
+    const float retractSpeed = 2.0f ; 
     float radius;
 	float moveSpeed, maxSpeed;
 	float stamina, staminaMax , staminaDepletionRate, staminaRepletionRate;

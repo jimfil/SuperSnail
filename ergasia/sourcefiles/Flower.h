@@ -14,17 +14,17 @@ public:
 
     GLuint VAO, vertexVBO, uvVBO, normalVBO, instanceVBO;
     GLuint textureID;
-	//flower colors for each instance
+
     std::vector<glm::vec3> instanceColors;
     GLuint colorVBO;
 
     std::vector<bool> edible;
-    // We store the color here instead of a texture ID
+
     glm::vec3 color;
     bool hasTexture;
     int vertexCount;
     int instanceCount;
-	// ObjPath, MtlPath, Terrain, Count, Scale, UseMtl, HasTexture
+
     Flower(const char* objPath, const char* mtlPath, Heightmap* terrain, int count, float scale, bool mtl, int mapSize);
     ~Flower();
 

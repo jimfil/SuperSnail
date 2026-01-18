@@ -1,14 +1,11 @@
 #version 330 core
 
-// Input: Position and UV coordinates
 layout(location = 0) in vec3 vertexPosition;
 layout(location = 1) in vec2 vertexUV; 
 
 out vec2 UV;
 
 uniform mat4 model;
-// We usually multiply Projection * Model. 
-// If your 'model' matrix already handles position/scale, make sure it includes projection logic or add it here.
 uniform mat4 projection; 
 uniform int useTexture; 
 

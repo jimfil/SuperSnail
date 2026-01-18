@@ -1,18 +1,15 @@
 #version 330 core
 
-// Interpolated values from the vertex shaders
 in vec2 UV;
 in vec3 Normal;
 in vec3 FragPos;
 in vec3 FragInstanceColor;
-// Output data
 out vec4 color;
 
 // Uniforms
 uniform sampler2D diffuseTexture;
-uniform int useTexture; // 1 for Trees, 0 for Flowers
+uniform int useTexture; 
 
-// Material struct matching your C++
 struct Material {
     vec4 Ka;
     vec4 Kd;
@@ -22,30 +19,18 @@ struct Material {
 uniform Material mtl;
 
 void main(){
-    // 1. Determine Base Color
     vec4 baseColor;
     if (useTexture == 1){
-        // Sample texture (for Trees)
         baseColor = texture(diffuseTexture, UV);
-        // Discard transparent pixels (alpha cutout)
         if(baseColor.a < 0.1) discard;
     } 
     else {
-        // Use Material Color (for Flowers)
         baseColor = vec4(FragInstanceColor, 1.0);
     }
 
+        vec3 norm = normalize(Normal);
     
+    float diff = max(dot(norm, vec3(0, 1.0, 0)), 0.2); 
     
-
-    // 2. Simple Hardcoded Lighting 
-    // (Since main.cpp doesn't send light uniforms to vegetShader yet)
-    vec3 lightDir = normalize(vec3(0.5, 1.0, 0.3)); // Fake sun direction
-    vec3 norm = normalize(Normal);
-    
-    // Diffuse calculation
-    float diff = max(dot(norm, lightDir), 0.2); // 0.2 is ambient floor
-    
-    // Apply lighting to color
     color = vec4(baseColor.rgb * diff, baseColor.a);
 }

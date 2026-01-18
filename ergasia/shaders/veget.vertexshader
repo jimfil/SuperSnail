@@ -27,7 +27,6 @@ out vec4 vertex_position_lightspace;
 void main() {
     TexCoords = vertexUV;
     vec4 worldPosition;
-    // We use instanceMatrix INSTEAD of a uniform Model Matrix
     if (vertexPosition_modelspace.y > 400){
         vec3 tempa = vertexPosition_modelspace + 15*vec3( sin(1.5*time),0.0, sin(1.5*time));
         worldPosition = instanceMatrix * vec4(tempa, 1.0);

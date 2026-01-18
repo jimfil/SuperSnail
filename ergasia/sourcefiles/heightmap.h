@@ -31,7 +31,7 @@ public:
     glm::vec3 getNormalAt(float worldX, float worldZ);
     float getGroundTypeAt(float worldX, float worldZ);
 private:
-    // Helper struct to hold data temporarily
+    // PRIVATE struct to hold data temporarily
     struct MeshData {
         std::vector<glm::vec3> v;
         std::vector<glm::vec2> uv;
@@ -41,9 +41,7 @@ private:
         std::vector<std::vector<float>> typeGrid;
     };
 
-    // Private Constructor (The target of delegation)
     Heightmap(const MeshData& data);
 
-    // Static function to do the calculation BEFORE construction
     static MeshData generate(const HillAlgorithmParameters& params);
 };

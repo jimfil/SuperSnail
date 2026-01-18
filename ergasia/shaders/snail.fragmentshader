@@ -107,11 +107,6 @@ void phong(float visibility) {
     float specular_factor = pow(cosAlpha, _Ns);
     vec4 Is = (light.Ls) * _Ks * specular_factor;
 
-    // here we would normally model the light attenuation effect
-    // but since this is a directional light source that is infinitely far away
-    // attenuating the light intensity does not make sense
-
-    // final fragment color
     fragmentColor = vec4(
         Ia + 
         (Id + Is) * visibility);

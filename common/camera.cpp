@@ -26,16 +26,12 @@ void Camera::update(Snail* snail) {
     glfwGetWindowSize(window, &width, &height);
     glfwSetCursorPos(window, width / 2, height / 2);
 
-    // 1. Update angles based on mouse movement
     horizontalAngle += mouseSpeed * float(width / 2 - xPos);
     verticalAngle -= mouseSpeed * float(height / 2 - yPos);
 
-    // 2. Clamp vertical angle to prevent the camera from flipping over the top/bottom
     if (verticalAngle > 1.5f) verticalAngle = 1.5f;
     if (verticalAngle < -1.5f) verticalAngle = -1.5f;
 
-    // 3. Spherical Coordinates to Cartesian Mapping
-    // This calculates the offset from the snail based on your mouse angles
     float camDist = 23.1214f * snail->radius;
 
     vec3 offset;
@@ -43,17 +39,13 @@ void Camera::update(Snail* snail) {
     offset.y = camDist * sin(verticalAngle);
     offset.z = camDist * cos(verticalAngle) * cos(horizontalAngle);
 
-    // 4. Set Camera Position and Target
-    // Position is the snail's center plus the calculated orbit offset
     position = snail->x + offset;
 
-    // Target is simply the snail itself
     vec3 lookTarget = snail->x;
 
-    // 5. Fixed "Up" vector usually works best for orbit cameras to prevent spinning
     vec3 up = vec3(0, 1, 0);
 
-    projectionMatrix = perspective(radians(FoV), (float)width / (float)height, 0.1f, 140.41f * 2 *snail->radius);
+    projectionMatrix = perspective(radians(FoV), (float)width / (float)height, 0.1f, 200.41f * 2 *snail->radius);
     viewMatrix = lookAt(position, lookTarget, up);
 
     lastTime = currentTime;

@@ -49,7 +49,7 @@ void Snail::draw() {
 }
 
 void Snail::update(float t, float dt) {
-    //integration
+    
     advanceState(t, dt);
     if (length(this->w) < 0.05f) {
         this->w = vec3(0, 0, 0);

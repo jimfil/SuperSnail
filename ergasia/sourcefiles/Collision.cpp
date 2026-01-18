@@ -3,7 +3,7 @@
 #include "snail.h"
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
-#include <cmath> // For floor
+#include <cmath> 
 
 using namespace glm;
 
@@ -52,7 +52,7 @@ void handleBoxSnailCollision(Heightmap* heightmap, Snail* snail) {
 }
 
 bool handleSnailTerrainCollision(Snail* snail, Heightmap* terrain, bool onTree) {
-    if (!snail || !terrain) return false; // Safety check
+    if (!snail || !terrain) return false; 
 
     float groundHeight = terrain->getHeightAt(snail->x.x, snail->x.z);
     float radius = snail->radius;
@@ -101,60 +101,49 @@ bool handleSnailTerrainCollision(Snail* snail, Heightmap* terrain, bool onTree) 
 }
 
 bool handleSnailTreeCollision(Snail* snail, const std::vector<mat4>& instanceMatrices) {
-    float treeRadius = 0.3f;
+    float treeRadius = 0.5f;
     float combinedRadius = snail->radius + treeRadius + 1.0f;
     float detectionDist = combinedRadius + 0.1f;
     float treeHeight = 20.0f;
 
-    // 1. Calculate which grid cell the snail is currently in
-    // We use the global 'cellSize' defined in main.cpp and accessible via Collision.h
     int snailGridX = static_cast<int>(floor(snail->x.x / cellSize));
     int snailGridZ = static_cast<int>(floor(snail->x.z / cellSize));
 
-    // 2. Iterate only through the snail's cell and its 8 neighbors
     for (int x = -1; x <= 1; x++) {
         for (int z = -1; z <= 1; z++) {
             GridKey key = { snailGridX + x, snailGridZ + z };
 
-            // 3. Check if this cell contains any trees
             if (treeGrid.find(key) != treeGrid.end()) {
                 const std::vector<int>& indices = treeGrid[key];
 
-                // 4. Iterate ONLY the trees in this specific cell
                 for (int index : indices) {
 
-                    // Safety check to ensure index is valid
                     if (index >= instanceMatrices.size()) continue;
 
                     const auto& modelMatrix = instanceMatrices[index];
                     vec3 treePos = vec3(modelMatrix[3]);
                     float treeTopY = treePos.y + treeHeight;
 
-                    // Calculate distance on XZ Plane
                     float dx = snail->x.x - treePos.x;
                     float dz = snail->x.z - treePos.z;
                     float distSq = dx * dx + dz * dz;
 
-                    // --- ZONE 1: TOP CAP (Walkable Platform) ---
                     if (abs(snail->x.y - (treeTopY + snail->radius)) < 0.5f && distSq < detectionDist * detectionDist) {
                         snail->x.y = treeTopY - 0.1;
                         vec3 surfaceNormal = vec3(0, 1, 0);
                         return true;
                     }
 
-                    // --- ZONE 2: SIDE TRUNK (Climbable Wall) ---
                     if (snail->x.y < (treeTopY + snail->radius) && distSq < detectionDist * detectionDist) {
 
                         float distance = sqrt(distSq);
                         float normalX = dx / distance;
                         float normalZ = dz / distance;
 
-                        // Push snail out of the tree
                         snail->x.x = treePos.x + (normalX * combinedRadius);
                         snail->x.z = treePos.z + (normalZ * combinedRadius);
                         vec3 treeNormal = vec3(normalX, 0.0f, normalZ);
 
-                        // Fall-off logic near the base
                         float heightFromBase = snail->x.y - treePos.y;
                         vec3 forward = snail->q * vec3(0, 0, 1);
                         if (!snail->isRetracted && forward.y < -0.2f && heightFromBase < 2.5f) {
@@ -162,14 +151,12 @@ bool handleSnailTreeCollision(Snail* snail, const std::vector<mat4>& instanceMat
                         }
 
                         if (snail->isRetracted) {
-                            // Bounce Logic
                             if (dot(snail->v, treeNormal) < 0.0f) {
                                 snail->v = reflect(snail->v, treeNormal) * 1.0f;
                                 snail->P = snail->v * snail->m;
                             }
                         }
                         else {
-                            // Climb/Stick Logic
                             vec3 targetUp = treeNormal;
                             vec3 currentForward = snail->q * vec3(0, 0, -1);
 

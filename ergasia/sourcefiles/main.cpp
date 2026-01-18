@@ -40,7 +40,6 @@ extern "C" {
 using namespace std;
 using namespace glm;
 
-// Function prototypes
 void initialize();
 void createContext();
 void mainLoop();
@@ -57,7 +56,7 @@ void uploadTreeLight(const Light& light);
 #define TITLE "Super Snail"
 #define SHADOW_WIDTH 2048
 #define SHADOW_HEIGHT 2048
-#define MAP_SIZE 750
+#define MAP_SIZE 2000
 #define MATERIALS
 
 // Global variables
@@ -117,7 +116,7 @@ GLuint flowerIconTex;
 enum GameState {MENU_STATE, GAME_STATE, SETTINGS_STATE};
 GameState currentState;
 Menu* mainMenu;
-int desiredTreeCount = 700;   // Default
+int desiredTreeCount = 700;   
 int desiredFlowerCount = 100;
 struct Material {
     vec4 Ka; 
@@ -318,25 +317,21 @@ vector<mat4> generateGrassPositions(int amount) {
         float y = terrain->getHeightAt(x, z);
 
         
-        // 2. Check Ground Type (0=Grass, 1=Rock)
-        // Only spawn if it's mostly grass (value < 0.5)
         float type = terrain->getGroundTypeAt(x, z);
-        if (abs(type) > 0.2f ) continue; 
+        if (abs(type) > 0.2f ) continue; // spawn only on grass
 
-        // 3. Randomize Rotation and Scale
         mat4 model = translate(mat4(1.0f), vec3(x, y, z));
 
         vec3 normal = normalize(terrain->getNormalAt(x, z));
         vec3 up = vec3(0.0f, 1.0f, 0.0f);
 
-        if (abs(dot(up, normal)) < 0.999f) { // Avoid glitches on perfectly flat ground
+        if (abs(dot(up, normal)) < 0.999f) { 
             vec3 axis = normalize(cross(up, normal));
             float angle = acos(dot(up, normal));
             model = rotate(model, angle, axis);
         }
         model = rotate(model, radians((float)(rand() % 360)), vec3(0, 1, 0));
 
-        // Random size variation (0.8 to 1.5)
         float scaleVal = 30.0f;
         model = scale(model, vec3(scaleVal, scaleVal/2, scaleVal));
 
@@ -360,23 +355,20 @@ vector<mat4> generateTreePositions(int amount,float scalar) {
 }
 
 void initTree() {
-    allTreeMatrices.clear(); // Clear start
+    allTreeMatrices.clear(); 
 
-    // --- 1. Setup OAK Trees ---
     oakTree.init("models/tree.obj", "models/tree2.bmp");
     vector<mat4> oakPos = generateTreePositions(desiredTreeCount/2,4.0f);
-    oakTree.setupInstances(oakPos); // Send to GPU for rendering
+    oakTree.setupInstances(oakPos);
 
-    // Add to Master Collision List
     allTreeMatrices.insert(allTreeMatrices.end(), oakPos.begin(), oakPos.end());
 
 
-    // --- 2. Setup PINE Trees ---
     pineTree.init("models/tree2.obj", "models/tree2.bmp");
-    vector<mat4> pinePos = generateTreePositions(desiredTreeCount/2,0.05f);
-    pineTree.setupInstances(pinePos); // Send to GPU for rendering
+    vector<mat4> pinePos = generateTreePositions(desiredTreeCount/2,0.1f);
+    pineTree.setupInstances(pinePos);
 
-    // Add to Master Collision List (Append after Oaks)
+    // Create tree grid
     allTreeMatrices.insert(allTreeMatrices.end(), pinePos.begin(), pinePos.end());
     grassSystem.init("models/grass2.obj","textures/grass3.bmp");
     vector<mat4> grassPos = generateGrassPositions(500);
@@ -556,7 +548,7 @@ void createContext2() {
 
     // Terrain 
 	//rows, columns, numHills, minRadius, maxRadius, minHeight, maxHeight, scalar, scalarY
-    Heightmap::HillAlgorithmParameters params(400, 400, 100, 10, 40, -2.0f, 5.0f, MAP_SIZE * 2, MAP_SIZE/ 10);
+    Heightmap::HillAlgorithmParameters params(400, 400, 100, 10, 40, -2.0f, 5.0f, MAP_SIZE * 2, 50);
     terrain = new Heightmap(params);
 
     // 20% - Terrain Done
@@ -580,20 +572,18 @@ void createContext2() {
     // 60% - Skybox Done
     updateProgressBar(60.0f);
 
-    initTree(); // This might take a moment if the OBJ is large
-    //initLowPolyTree();
+    initTree();
 
     // 80% - Geometry Done
     updateProgressBar(80.0f);
 
-    // Flowers (Loading many OBJs)
     redFlower = new Flower("models/flowers/redFlower.obj", "models/flowers/redFlower.mtl", terrain, desiredFlowerCount, 5.0f, true, MAP_SIZE);
-    // Optional: Update to 85%
+ 
     updateProgressBar(85.0f);
 
     purpulFlower = new Flower("models/flowers/bellFlower.obj", "models/flowers/bellFlower.mtl", terrain, desiredFlowerCount, 4.0f, true, MAP_SIZE);
     mushroom = new Flower("models/flowers/mushroom.obj", "models/flowers/mushroom.mtl", terrain, desiredFlowerCount / 2, 0.3f, true, MAP_SIZE);
-    // Optional: Update to 90%
+   
     updateProgressBar(90.0f);
 
     mushroom2 = new Flower("models/flowers/mushroom.obj", "models/flowers/mushroom2.mtl", terrain, desiredFlowerCount/2, 0.3f, true, MAP_SIZE);
@@ -609,7 +599,6 @@ void createContext2() {
 void drawTerrain(GLuint program, GLuint modelLocation, GLuint diffuseSampler) {
     glUseProgram(program);
 
-    // Set Terrain Specific Uniforms (Matrices and LightVP are set in lighting_pass)
     uploadLight(*light); 
 
     mat4 modelMatrix = terrain->returnplaneMatrix();
@@ -621,7 +610,7 @@ void drawTerrain(GLuint program, GLuint modelLocation, GLuint diffuseSampler) {
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, terrainRockTexture);
     glUniform1i(glGetUniformLocation(program, "detailSampler"), 1);
-    glUniform1i(useTextureLocation, 1); // Tell terrain shader to use texture
+    glUniform1i(useTextureLocation, 1); 
 
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, terrain->splatTextureID);
@@ -642,10 +631,8 @@ void drawTerrain(GLuint program, GLuint modelLocation, GLuint diffuseSampler) {
 void drawSnail(GLuint program, GLuint modelLocation, float time, float speed, float retractFactor) {
     glUseProgram(program);
 
-    // Set Snail Specific Uniforms
     uploadSnailLight(*light); 
-
-    // Animation Uniforms
+    
     glUniform1f(snailTimeLocation, time);
     glUniform1f(snailSpeedLocation, speed);
     glUniform1f(snailRetractFactorLocation, retractFactor);
@@ -657,15 +644,13 @@ void drawSnail(GLuint program, GLuint modelLocation, float time, float speed, fl
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, snailDiffuseTexture);
-    glUniform1i(snailColorSampler, 0); // Assuming snail texture uses snailColorSampler (unit 0)
+    glUniform1i(snailColorSampler, 0); 
 
-    // Shadow Map Binding (Use Texture Unit 2, as defined in lighting_pass)
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, depthTexture);
     glUniform1i(snailDepthMapSampler, 2);
 
 
-    // Light VP (Shadow Projection)
     mat4 lightVP = light->lightVP();
     glUniformMatrix4fv(snailLightVPLocation, 1, GL_FALSE, &lightVP[0][0]);
 	
@@ -702,7 +687,7 @@ void drawStaminaBar(float stamina, float maxStamina) {
     float percentage = glm::clamp(stamina / maxStamina, 0.0f, 1.0f);
 
     quad->bind();
-    // --- DRAW BACKGROUND ---
+    //DRAW BACKGROUND 
     
     mat4 bgModel = translateMat * scale(mat4(1.0f), vec3(1.0f/ 2.0f,1.0/ 20.0f, 1.0f));
     
@@ -711,7 +696,7 @@ void drawStaminaBar(float stamina, float maxStamina) {
     glUniform3f(colorLoc, 0.2f, 0.2f, 0.2f);
     quad->draw();
 
-    // --- DRAW FILL ---
+    //DRAW FILL 
     mat4 fgModel = translateMat * scale(mat4(1.0f), vec3(1.0f / 2.0f * percentage, 1.0 / 20.0f, 1.0f));
 
     vec3 color = (percentage > 0.5f) ? vec3(0.0f, 0.8f, 0.0f) : (percentage > 0.2f ? vec3(0.8f, 0.8f, 0.0f) : vec3(0.8f, 0.0f, 0.0f));
@@ -736,7 +721,6 @@ void depth_pass() {
     glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
     glBindFramebuffer(GL_FRAMEBUFFER, depthFBO);
     glClear(GL_DEPTH_BUFFER_BIT);
-    // Use Shadow Loader for all geometry
     glUseProgram(shadowLoader);
 
 
@@ -785,8 +769,6 @@ void lighting_pass(mat4 viewMatrix, mat4 projectionMatrix, float retractFactor,f
     glUniformMatrix4fv(snailProjectionMatrixLocation, 1, GL_FALSE, &projectionMatrix[0][0]);    
     float snailSpeed = length(snail->v);
     drawSnail(snailShaderProgram, snailModelMatrixLocation, (float)glfwGetTime(), snailSpeed, retractFactor);
-    
-    //updateLODTrees(snail,camera->position);
 
     glUseProgram(vegetShader);
     glUniformMatrix4fv(glGetUniformLocation(vegetShader, "P"), 1, GL_FALSE, &projectionMatrix[0][0]);
@@ -830,7 +812,6 @@ void drawSpeedBar(float speed, float maxSpeed) {
 
     mat4 fgModel = translateMat * scale(mat4(1.0f), vec3(0.4f * percentage, 0.05f, 1.0f));
 
-    // Color changes from Blue (slow) to Cyan (fast)
     vec3 speedColor = vec3(0.0f, 0.5f + (0.5f * percentage), 1.0f);
 
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &fgModel[0][0]);
@@ -910,7 +891,6 @@ void menuLoop() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // FIX 1: Add glfwWindowShouldClose check to stop infinite hangs
     int activePage = 0;
     do {
         if (currentState == MENU_STATE) activePage = 0;
@@ -918,10 +898,8 @@ void menuLoop() {
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // 2. Draw the active page
         mainMenu->draw(staminaShader, W_WIDTH, W_HEIGHT, activePage);
 
-        // 3. Render Text for counts (if in Settings)
         if (currentState == SETTINGS_STATE) {
 
             mainMenu->drawNumber(staminaShader, desiredTreeCount, vec2(W_WIDTH * 0.59f, W_HEIGHT * 0.75f), 1.0f, W_WIDTH, W_HEIGHT);
@@ -930,19 +908,18 @@ void menuLoop() {
             mainMenu->drawIcon(staminaShader, treeIconTex, vec2(W_WIDTH * 0.50f, W_HEIGHT * 0.75f), glm::vec2(100, 100));
             mainMenu->drawIcon(staminaShader, flowerIconTex, vec2(W_WIDTH * 0.50f, W_HEIGHT * 0.50f), glm::vec2(100, 100));
         }
-
-        // 4. Handle Clicks
+        
         if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
             double x, y;
             glfwGetCursorPos(window, &x, &y);
 
             int action = mainMenu->checkClick(x, y, W_HEIGHT, activePage);
 
-            if (action == 3) { // "Start" clicked on Main Menu
-                currentState = SETTINGS_STATE; // Go to settings
-                glfwWaitEventsTimeout(0.2); // Prevent double click
+            if (action == 3) { // Clicked on "Settings"
+                currentState = SETTINGS_STATE; 
+                glfwWaitEventsTimeout(0.2); 
             }
-            else if (action == 1) { // "Play" clicked on Settings
+			else if (action == 1) { // Clicked on "Start Game" 
                 createContext2();
                 mainLoop(); // Generate world
                 currentState = GAME_STATE; // Start Game
@@ -971,7 +948,6 @@ void menuLoop() {
             glfwPollEvents();
         } while ((currentState == MENU_STATE || currentState == SETTINGS_STATE)  && glfwWindowShouldClose(window) == 0 && glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS);
     free();
-    // Cleanup before starting game
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_BLEND);
 }
@@ -998,10 +974,6 @@ void mainLoop() {
         camera->update(snail);
 		light->update(snail->x);
         eagle->update(dt, snail);
-        // --- 1. Input Handling and Velocity ---
-        
-
-        // Check for Retract Key (Step 3 Setup)
         bool controlPressed = (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS);
 
         if (controlPressed && !isControlKeyHeld){
@@ -1017,7 +989,6 @@ void mainLoop() {
 
         }
         isControlKeyHeld = controlPressed;
-        // Animation Update (smooth transition)
         if (snail->retractCurrent < snail->retractTarget) {
             snail->retractCurrent += snail->retractSpeed * dt;
         }
@@ -1033,18 +1004,15 @@ void mainLoop() {
             snail->isRetracted = true;
 		}
 
-        // --- 2. Physics Update (Forcing) ---
         if (snail->retractCurrent > 0.0f)applyFlowerPhysics();
         onTree = handleSnailTreeCollision(snail, allTreeMatrices);
         isGrounded = handleSnailTerrainCollision(snail, terrain, onTree);
         if (isGrounded) {
-            // 1. Get the ground normal
             vec3 n = normalize(terrain->getNormalAt(snail->x.x, snail->x.z));
 
             float impactSpeed = dot(snail->v, n);
             float groundType = terrain->getGroundTypeAt(snail->x.x, snail->x.z);
 
-            // 2. Determine Bounciness
             float bounciness = 0.0f; 
 
             if (groundType < -0.5f) {
@@ -1215,11 +1183,9 @@ void mainLoop() {
         }
         handleBoxSnailCollision(terrain, snail);
 
-        // Apply physics step
         snail->update(t, dt);
 
-        // --- 5. Rendering ---
-        depth_pass(); // Use light matrices implicitly
+        depth_pass(); 
 
         mat4 projectionMatrix = camera->projectionMatrix;
         mat4 viewMatrix = camera->viewMatrix;
@@ -1292,21 +1258,21 @@ void initialize() {
 }
 
 void uploadMaterial(const Material& mtl) {
-    glUniform4f(KaLocation, mtl.Ka.r, mtl.Ka.g, mtl.Ka.b, mtl.Ka.a); // Assuming KaLocation is the latest bound uniform
+    glUniform4f(KaLocation, mtl.Ka.r, mtl.Ka.g, mtl.Ka.b, mtl.Ka.a); 
     glUniform4f(KdLocation, mtl.Kd.r, mtl.Kd.g, mtl.Kd.b, mtl.Kd.a);
     glUniform4f(KsLocation, mtl.Ks.r, mtl.Ks.g, mtl.Ks.b, mtl.Ks.a);
     glUniform1f(NsLocation, mtl.Ns);
 }
 
 void uploadSnailMaterial(const Material& mtl) {
-    glUniform4f(snailKaLocation, mtl.Ka.r, mtl.Ka.g, mtl.Ka.b, mtl.Ka.a); // Assuming KaLocation is the latest bound uniform
+    glUniform4f(snailKaLocation, mtl.Ka.r, mtl.Ka.g, mtl.Ka.b, mtl.Ka.a); 
     glUniform4f(snailKdLocation, mtl.Kd.r, mtl.Kd.g, mtl.Kd.b, mtl.Kd.a);
     glUniform4f(snailKsLocation, mtl.Ks.r, mtl.Ks.g, mtl.Ks.b, mtl.Ks.a);
     glUniform1f(snailNsLocation, mtl.Ns);
 }
 
 void uploadLight(const Light& light) {
-    glUniform4f(LaLocation, light.La.r, light.La.g, light.La.b, light.La.a); // Assuming LaLocation is the latest bound uniform
+    glUniform4f(LaLocation, light.La.r, light.La.g, light.La.b, light.La.a); 
     glUniform4f(LdLocation, light.Ld.r, light.Ld.g, light.Ld.b, light.Ld.a);
     glUniform4f(LsLocation, light.Ls.r, light.Ls.g, light.Ls.b, light.Ls.a);
     glUniform3f(lightPositionLocation, light.lightPosition_worldspace.x,
@@ -1315,7 +1281,7 @@ void uploadLight(const Light& light) {
 }
 
 void uploadSnailLight(const Light& light) {
-    glUniform4f(snailLaLocation, light.La.r, light.La.g, light.La.b, light.La.a); // Assuming LaLocation is the latest bound uniform
+    glUniform4f(snailLaLocation, light.La.r, light.La.g, light.La.b, light.La.a); 
     glUniform4f(snailLdLocation, light.Ld.r, light.Ld.g, light.Ld.b, light.Ld.a);
     glUniform4f(snailLsLocation, light.Ls.r, light.Ls.g, light.Ls.b, light.Ls.a);
     glUniform3f(snailLightPositionLocation, light.lightPosition_worldspace.x,

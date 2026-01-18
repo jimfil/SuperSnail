@@ -100,8 +100,7 @@ float ShadowCalculation(vec4 fragPositionLightspace,sampler2D shadowMap, vec4 no
     }
     shadow /= 9.0;
     
-    // Inside ShadowCalculation, before returning shadow
-    if(projCoords.z > 1.0 || projCoords.z < 0.0||projCoords.x > 1.0 || projCoords.x < 0.0 || projCoords.y > 1.0 || projCoords.y < 0.0) shadow = 0.0;
+    if(projCoords.z > 1.0) shadow = 0.0;
     
 
 
@@ -131,10 +130,6 @@ void phong(float visibility) {
         // Read the Splat Map (RGB)
         vec3 splat = texture(splatMapSampler, vertex_UV).rgb;
     
-        // splat.r = Rock Amount
-        // splat.g = Bouncy Amount
-
-        // 1. Mix Grass and Rock first
         float rockFactor = smoothstep(0.4, 0.6, splat.r);
         vec4 finalColor = mix(grassColor, rockColor, rockFactor);
 

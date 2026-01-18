@@ -16,14 +16,13 @@ Heightmap::Heightmap(const HillAlgorithmParameters& params)
     this->cols = params.columns;
     this->position = glm::vec3(0.0f, 0.0f, 0.0f);
 
-    // --- NEW: Generate Splat Texture (Mask) ---
-    // We convert the 2D typeGrid into a texture the GPU can read
+    // splat map
     glGenTextures(1, &splatTextureID);
     glBindTexture(GL_TEXTURE_2D, splatTextureID);
 
 
     std::vector<unsigned char> imageBuffer;
-    imageBuffer.reserve(rows * cols * 3); // Reserve for RGB (3 bytes per pixel)
+    imageBuffer.reserve(rows * cols * 3); // Reserve for RGB 
 
     for (int r = 0; r < rows; r++) {
         for (int c = 0; c < cols; c++) {
@@ -52,7 +51,6 @@ Heightmap::Heightmap(const HillAlgorithmParameters& params)
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    // Linear interpolation ensures smooth transition between Grass and Rock visuals
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
@@ -83,8 +81,7 @@ Heightmap::MeshData Heightmap::generate(const HillAlgorithmParameters& params)
     std::uniform_real_distribution<float> hDist(params.hillMinHeight, params.hillMaxHeight);
     std::uniform_int_distribution<int> rowDist(0, params.rows - 1);
     std::uniform_int_distribution<int> colDist(0, params.columns - 1);
-
-    // 1. Generate Hills (Existing Logic)
+    //gen Hills
     for (int i = 0; i < params.numHills; i++) {
         int cR = rowDist(generator);
         int cC = colDist(generator);
@@ -110,15 +107,14 @@ Heightmap::MeshData Heightmap::generate(const HillAlgorithmParameters& params)
         for (int c = 0; c < params.columns; c++) {
             float height = grid[r][c];
 
-            // LOGIC:
-            // 1. Deep/Negative = Bouncy (Value: -1.0)
-            // 2. Low/Valley = Rock (Value: 1.0)
-            // 3. High/Hill = Grass (Value: 0.0)
+            //bouncy <0
+            // Rock (Value <0.07)
+			// grass psila >=0.07
 
             if (height < 0.0f) {
                 typeGrid[r][c] = -1.0f; // NEW: Bouncy Area
             }
-            else if (height < 0.05f) {
+            else if (height < 0.07f) {
                 typeGrid[r][c] = 1.0f;  // Rock Area
             }
             else {
@@ -141,7 +137,6 @@ Heightmap::MeshData Heightmap::generate(const HillAlgorithmParameters& params)
     data.grid = grid;
     data.typeGrid = typeGrid;
 
-    // 3. Build Mesh (Triangle Soup)
     int numQuads = (params.rows - 1) * (params.columns - 1);
     data.v.reserve(numQuads * 6);
     data.uv.reserve(numQuads * 6);
@@ -162,7 +157,7 @@ Heightmap::MeshData Heightmap::generate(const HillAlgorithmParameters& params)
     return data;
 }
 
-glm::mat4 Heightmap::returnplaneMatrix() {
+mat4 Heightmap::returnplaneMatrix() {
     return scale(mat4(), vec3(scalar, scalarY, scalar));
 }
 
@@ -180,6 +175,7 @@ float Heightmap::getHeightAt(float worldX, float worldZ) {
     if (r < 0) r = 0; if (r >= rows - 1) r = rows - 2;
     if (c < 0) c = 0; if (c >= cols - 1) c = cols - 2;
 
+    // Digrammikh parembolh
     float h00 = heightGrid[r][c];     float h10 = heightGrid[r + 1][c];
     float h01 = heightGrid[r][c + 1]; float h11 = heightGrid[r + 1][c + 1];
     float percentU = c_f - c; float percentV = r_f - r;
@@ -203,7 +199,7 @@ float Heightmap::getGroundTypeAt(float worldX, float worldZ) {
     if (r < 0) r = 0; if (r >= rows - 1) r = rows - 2;
     if (c < 0) c = 0; if (c >= cols - 1) c = cols - 2;
 
-    // Use Bilinear Interpolation for smooth physics transition
+    // Digrammikh parembolh
     float t00 = typeGrid[r][c];     float t10 = typeGrid[r + 1][c];
     float t01 = typeGrid[r][c + 1]; float t11 = typeGrid[r + 1][c + 1];
 
@@ -213,7 +209,6 @@ float Heightmap::getGroundTypeAt(float worldX, float worldZ) {
     float tTop = t00 * (1.0f - percentU) + t01 * percentU;
     float tBot = t10 * (1.0f - percentU) + t11 * percentU;
 
-    // Returns 0.0 (Grass) to 1.0 (Rock)
     return tTop * (1.0f - percentV) + tBot * percentV;
 }
 
