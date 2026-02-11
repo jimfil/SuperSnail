@@ -982,7 +982,7 @@ void mainLoop() {
                 snail->retractTarget = 1.0f;
                 snail->isSprinting = false;
             }
-            else {
+            else if (snail->x.y < terrain->getHeightAt(snail->x.x,snail->x.z) + 4 * snail->radius ){
                 snail->retractTarget = 0.0f;
             }
 
